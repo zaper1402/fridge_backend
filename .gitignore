@@ -12211,3 +12211,4 @@ env/Scripts/pyrsa-verify.exe
 env/Scripts/virtualenv.exe
 env/Scripts/__pycache__/fixup_firestore_admin_v1_keywords.cpython-311.pyc
 env/Scripts/__pycache__/fixup_firestore_v1_keywords.cpython-311.pyc
+fridge/__pycache__/
