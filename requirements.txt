@@ -1,0 +1,9 @@
+# Core requirements
+Django>=5.1.2
+djangorestframework>=3.14.0
+
+# Firebase integration
+firebase-admin>=6.2.0
+
+# Database
+# psycopg2-binary>=2.9.10
