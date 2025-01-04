@@ -3,26 +3,36 @@ from .serializers import UserSerializer
 from django.http import HttpResponse
 from authentication.views import verify_token_direct
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from user.models import User
+
 
 @csrf_exempt
+@api_view(['POST'])
 def update_user(request):
     if(request.method == 'POST'):    
-        data = JSONParser().parse(request)
-        # token = request.headers.get('Authorization')
-
-        # if not token:
-        #     return HttpResponse({"error": "No token provided."}, status=400)
-
-        # response = verify_token_direct(token)
-
-        # if response.status_code != 200:
-        #     return response
-
-        serializer = UserSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return HttpResponse({serializer.data}, status=201)
+        token = request.headers.get('Authorization')
+        verified_token = verify_token_direct(token)
+        if verified_token.status_code != 200:
+            return verified_token
         else:
-            return HttpResponse(serializer.errors, status=400)
+            data = request.data
+            email = data.get('email')
+            if email is None or email == "" or User.objects.filter(email=email).exists() is False:
+                serializer = UserSerializer(data=data)
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response(serializer.data, status=201)
+                else:
+                    return Response(serializer.errors, status=400)
+            else:
+                user = User.objects.get(email=email)
+                serializer = UserSerializer(user, data=data)
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response(serializer.data, status=201)
+                else:
+                    return Response(serializer.errors, status=400)
     else:
         return HttpResponse({"error": "Method not allowed."}, status=405)
