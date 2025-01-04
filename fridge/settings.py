@@ -13,6 +13,10 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import firebase_admin
 from firebase_admin import credentials, firestore
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 cred = credentials.Certificate('fridge/fridge-663e4-firebase-adminsdk-7hlo1-e6f04fa70f.json')
 firebase_admin.initialize_app(cred)
@@ -89,11 +93,11 @@ DATABASES = {
     # }
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'fridgeStag', 
-        'USER': 'postgres',  
-        'PASSWORD': 'fridgebackend',  # Master password
-        'HOST': 'fridge.cyulwzwkmng2.us-east-1.rds.amazonaws.com',  # RDS endpoint
-        'PORT': '5432',  # Default PostgreSQL port
+        'NAME': os.getenv('DB_NAME'), 
+        'USER': os.getenv('DB_USER'),  
+        'PASSWORD': os.getenv('DB_PASSWORD'),  # Master password
+        'HOST': os.getenv('DB_HOST'),  # RDS endpoint
+        'PORT': os.getenv('DB_PORT'),  # Default PostgreSQL port
     }
 }
 
