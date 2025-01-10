@@ -10,3 +10,6 @@ psycopg2>=2.9.1
 
 #Dotenv
 python-dotenv>=1.0.1
+
+#pillow
+Pillow>=9.0.0

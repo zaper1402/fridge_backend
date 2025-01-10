@@ -1,0 +1,16 @@
+First time
+- go to root folder
+- pip install virtualenv
+- python -m venv venv
+- .\venv\Scripts\activate.bat
+- python install -r requirements
+- python manage.py makemigrations
+- python manage.py migrate
+- python manage.py runserver
+
+Second and subsequent launch
+- .\venv\Scripts\activate.bat
+- python install -r requirements
+- python manage.py makemigrations
+- python manage.py migrate
+- python manage.py runserver
