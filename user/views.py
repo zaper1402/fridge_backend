@@ -12,14 +12,16 @@ from user.models import User
 @api_view(['POST'])
 def update_user(request):
     if(request.method == 'POST'):    
-        token = request.headers.get('Authorization')
-        verified_token = verify_token_direct(token)
-        if verified_token.status_code != 200:
-            return verified_token
-        else:
+        # token = request.headers.get('Authorization')
+        # verified_token = verify_token_direct(token)
+        # if verified_token.status_code != 200:
+        #     return verified_token
+        # else:
             data = request.data
             email = data.get('email')
-            if email is None or email == "" or User.objects.filter(email=email).exists() is False:
+            if email is None or email == "":
+                return Response({"error": "Email is required."}, status=400)
+            elif User.objects.filter(email=email).exists() is False:
                 serializer = UserSerializer(data=data)
                 if serializer.is_valid():
                     serializer.save()
