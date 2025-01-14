@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from user.enums import PreferencesTags, GenderChoices
+from product.models import Product
 
 
 
@@ -16,4 +17,20 @@ class User(models.Model):
         blank=True,
         null=True
     )
-    
+
+class UserProduct(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    user_id = models.IntegerField()
+    @property
+    def total_quantity(self):
+        return sum(entry.quantity for entry in self.entry_set.all())
+
+class Entry(models.Model):
+    user_inventory = models.ForeignKey(UserProduct, on_delete=models.CASCADE)
+    quantity = models.FloatField()
+    expiry_date = models.DateField()
+    creation_date = models.DateField(auto_now_add=True)  
+
+
+
+
