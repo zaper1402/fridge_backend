@@ -5,3 +5,4 @@ fridge/__pycache__/settings.cpython-311.pyc
 fridge/__pycache__/urls.cpython-311.pyc
 .env
 fridge/fridge-663e4-firebase-adminsdk-7hlo1-e6f04fa70f.json
+fridge_key.pem
