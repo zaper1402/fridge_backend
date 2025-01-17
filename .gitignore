@@ -1,5 +1,5 @@
 env/
-fridge/__pycache__/*
+*/__pycache__/*
 *.pyc
 fridge/__pycache__/settings.cpython-311.pyc
 fridge/__pycache__/urls.cpython-311.pyc
