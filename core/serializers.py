@@ -21,7 +21,8 @@ class HomeDataSerializer(serializers.Serializer):
             products = UserProduct.objects.filter(user_id=user_id, product__category=category)
             serialized_products = UserProductSerializer(products, many=True).data
             category_data["products"].extend(serialized_products)
-            inventory.append(category_data)
+            if category_data.get('products'):
+                inventory.append(category_data)
         return inventory
     
     def get_alerts(self, obj):
