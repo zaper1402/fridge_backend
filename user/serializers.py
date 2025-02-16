@@ -34,9 +34,19 @@ class UserSerializer(serializers.ModelSerializer):
         return data
 
 class ProductSerializer(serializers.ModelSerializer):
+    total_qt= serializers.SerializerMethodField()
+
+    def get_total_qt(self, obj):
+        user_id = self.context.get('user_id', '')
+        if user_id:
+            user_product = UserProduct.objects.filter(user_id=user_id, product_id=obj.id).first()
+            entries = Entry.objects.filter(user_inventory=user_product.id).values_list("quantity", flat=True)
+            return sum(entries)
+        return 0
+        
     class Meta:
         model = Product
-        fields = '__all__'
+        fields = ['total_qt', 'name','brand', 'standard_expiry_days', 'category', 'allergy_tags', 'quantity_type']
 
 class EntrySerializer(serializers.ModelSerializer):
     class Meta:

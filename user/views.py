@@ -61,7 +61,7 @@ def addUserProduct(request):
             serializer = AddProductFormSerializer(data=data)
             if serializer.is_valid():
                 product = serializer.save()
-                return Response(product, status=201) 
+                return Response(product, status=200) 
                 
             else:
                 return Response(serializer.errors, status=400)
@@ -82,6 +82,6 @@ def get_product_list(request):
     if search_string:            
         filters['name__icontains'] = search_string
     products = Product.objects.filter(**filters).values('name', 'id')
-    return Response(list(products), status=201) 
+    return Response(list(products), status=200) 
     # else:
     #     return Response({"error": "Method not allowed."}, status=405)

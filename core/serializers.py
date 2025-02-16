@@ -1,8 +1,44 @@
 from rest_framework import serializers
-from user.models import UserProduct, Entry
+from user.models import UserProduct, Entry, Meals
 from product.enums import Categories
 from user.serializers import UserProductSerializer
 from django.utils.timezone import now
+
+
+class RecipesSerializer(serializers.ModelSerializer):
+    recipe_choice = serializers.CharField(source='get_recipe_type_display')
+    meal_type_choice = serializers.CharField(source='get_meal_type_display')
+    category_name = serializers.CharField(source='category.name')
+    is_fav = serializers.SerializerMethodField()
+
+    def get_is_fav(self, obj):
+        fav_meals = self.context.get('fav_meals', []) or []
+        favs = self.context.get('favs', False) or False
+        if fav_meals:
+            if obj.id in fav_meals:
+                return True
+        return favs
+
+    class Meta:
+        model = Meals
+        fields = ['id', 'name', 'subtitle',  'recipe_time', 'is_fav', 'recipe_choice', 'meal_type_choice', 'category_name', 'category', 'image_url']
+
+class RecipeDetailsSerializer(serializers.ModelSerializer):
+    recipe_choice = serializers.CharField(source='get_recipe_type_display')
+    meal_type_choice = serializers.CharField(source='get_meal_type_display')
+    category_name = serializers.CharField(source='category.name')
+    is_fav = serializers.SerializerMethodField()
+
+    def get_is_fav(self, obj):
+        fav_meals = self.context.get('fav_meals', []) or []
+        if obj.id in fav_meals:
+            return True
+        return False
+
+    class Meta:
+        model = Meals
+        fields = ['id', 'name', 'subtitle',  'recipe_time', 'is_fav', 'recipe_choice', 'meal_type_choice', 'category_name', 'category', 'details', 'ingredients', 'steps', 'image_url']
+
 
 class HomeDataSerializer(serializers.Serializer):
     inventory = serializers.SerializerMethodField()
@@ -19,7 +55,7 @@ class HomeDataSerializer(serializers.Serializer):
                 "products": []
             }
             products = UserProduct.objects.filter(user_id=user_id, product__category=category)
-            serialized_products = UserProductSerializer(products, many=True).data
+            serialized_products = UserProductSerializer(products, many=True, context={"user_id": user_id}).data
             category_data["products"].extend(serialized_products)
             if category_data.get('products'):
                 inventory.append(category_data)
@@ -38,7 +74,7 @@ def create_alert_if_needed(user_product: UserProduct):
     alerts = []
     if user_product:
         for entries in user_product.entries:
-            days_left = (entries.expiry_date - now().date()).days
+            days_left = (entries.expiry_date - now()).days
             if days_left < 0:
                 alerts.append({
                     "id": entries.id,

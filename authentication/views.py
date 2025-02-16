@@ -8,6 +8,51 @@ from user.serializers import UserSerializer
 from rest_framework.authtoken.models import Token
 
 
+
+
+@api_view(['GET'])
+def profile(request):
+    try:
+        id = request.GET.get('id', '')
+        user = User.objects.filter(id=id).values('name', 'email', 'date_of_birth', 'phone_number')
+        if not user:
+            return Response(
+                {"error": f"User Does Not Exists"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(user[0] , status=status.HTTP_200_OK)
+    except Exception as err:
+        return Response(
+            {"error": f"User verification failed: {str(err)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+def register_user(request):
+    try:
+        email = request.data.get('email')
+        password = request.data.get('password')
+        if User.objects.filter(email=email):
+            return Response(
+                {"error": f"User Exists"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        values= {}
+        print(request.data)
+        if request.data.get('dob', ''):
+            values["date_of_birth"]=request.data.get('dob', '')
+
+        user = User.objects.create(name=request.data.get('name', ''), email=request.data.get('email', ''), 
+                     phone_number=request.data.get('phone_number', ''), **values)
+        user.set_password(request.data["password"])
+        user.save()
+        token, api_key = Token.objects.get_or_create(user_id=user.id)
+        return Response({"api_key": api_key, "token": token.key, "user_id":user.id}, status=status.HTTP_200_OK)
+    except Exception as err:
+        return Response(
+            {"error": f"User verification failed: {str(err)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+        
+
 @api_view(['POST'])
 def login(request):
     try:
@@ -15,13 +60,20 @@ def login(request):
         email = request.data.get('email')
         password = request.data.get('password')
         usr = User.objects.filter(email=email).first()
+        if not usr:
+            return Response(
+                {"error": f"User password incorrect", "is_user_valid":False},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         print(password, usr.password)
-        if check_password(password, usr.password):
+        if check_password(password, usr.password) or password == usr.password:
             token, api_key = Token.objects.get_or_create(user_id=usr.id)
-            print(token, api_key)
-            return Response({"api_key": api_key, "token": token.key}, status=status.HTTP_200_OK)
+            return Response({"api_key": api_key, "token": token.key, "user_id":usr.id}, status=status.HTTP_200_OK)
         else:
-            raise PasswordError(AFM0014)
+            return Response(
+                {"error": f"User password incorrect", "incorrect_password":True},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     except Exception as err:
         return Response(
             {"error": f"User verification failed: {str(err)}"},
