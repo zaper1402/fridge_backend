@@ -1,9 +1,34 @@
 from rest_framework.response import Response
+from django.contrib.auth.hashers import check_password, make_password
 from firebase_admin import auth as firebase_auth
 from rest_framework.decorators import api_view
 from rest_framework import status
 from user.models import User
 from user.serializers import UserSerializer
+from rest_framework.authtoken.models import Token
+
+
+@api_view(['POST'])
+def login(request):
+    try:
+        # print(User.objects.filter(email='ashirkul@gmail.com').values('email', 'password'))
+        email = request.data.get('email')
+        password = request.data.get('password')
+        usr = User.objects.filter(email=email).first()
+        print(password, usr.password)
+        if check_password(password, usr.password):
+            token, api_key = Token.objects.get_or_create(user_id=usr.id)
+            print(token, api_key)
+            return Response({"api_key": api_key, "token": token.key}, status=status.HTTP_200_OK)
+        else:
+            raise PasswordError(AFM0014)
+    except Exception as err:
+        return Response(
+            {"error": f"User verification failed: {str(err)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
 
 @api_view(['POST'])
 def verify_token(request):

@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-cred = credentials.Certificate('fridge/fridge-663e4-firebase-adminsdk-7hlo1-e6f04fa70f.json')
+cred = credentials.Certificate('fridge-663e4-firebase-adminsdk-7hlo1-e6f04fa70f.json')
 firebase_admin.initialize_app(cred)
 
 db = firestore.client()
@@ -48,9 +48,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
     'authentication',
     'user',
-    'product'
+    'product',
+    'core'
 ]
 
 MIDDLEWARE = [
