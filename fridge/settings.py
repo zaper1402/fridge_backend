@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-cred = credentials.Certificate('fridge-663e4-firebase-adminsdk-7hlo1-e6f04fa70f.json')
+cred = credentials.Certificate('fridge/fridge-663e4-firebase-adminsdk-7hlo1-e6f04fa70f.json')
 firebase_admin.initialize_app(cred)
 
 db = firestore.client()
