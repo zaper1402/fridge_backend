@@ -6,9 +6,9 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from user.models import User, UserProduct
-from user.serializers import UserProductSerializer
+from user.serializers import UserProductSerializer, NotifSerializer
 from product.models import Product
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 @csrf_exempt
@@ -161,5 +161,29 @@ def updateUserProducts(request):
             else:
                 return Response(user_product_serialized.errors, status=400)
         return Response({"message": "Products updated successfully."}, status=200)
+    else:
+        return Response({"error": "Method not allowed."}, status=405)
+
+
+# def products within 10 days
+@csrf_exempt
+@api_view(['GET'])
+def getNotifications(request):
+    if(request.method == 'GET'):    
+        # token = request.headers.get('Authorization')
+        # verified_token = verify_token_direct(token)
+        # if verified_token.status_code != 200:
+        #     return verified_token
+        # else:   
+        # user = getUserFromToken(verified_token)
+        user_id = request.GET.get('uid')
+        user = User.objects.get(id=user_id)
+        if not user:
+            return Response({"error": "User not found."}, status=404)
+    
+        user_products = UserProduct.objects.filter(user=user, expiry_date__lte=datetime.now() + timedelta(days=10)).order_by('expiry_date')
+        sorted_products = sorted(user_products, key=lambda x: x.expiry_date)
+        serializer = NotifSerializer(sorted_products, many=True)
+        return Response({"notifs":serializer.data}, status=200)
     else:
         return Response({"error": "Method not allowed."}, status=405)

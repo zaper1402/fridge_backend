@@ -1,0 +1,23 @@
+Connect to AWS instance
+
+sudo apt update && sudo apt upgrade -y
+sudo apt install python3 python3-pip python3-venv git -y
+sudo apt update
+sudo apt install libpq-dev -y
+sudo apt install postgresql postgresql-contrib -y
+sudo -u postgres psql
+
+
+
+cd fridge_backend/
+
+python3 -m venv venv
+source venv/bin/activate
+
+python manage.py makemigrations
+python manage.py migrate
+python manage.py collectstatic [optional]
+python manage.py runserver 0.0.0.0:8000
+
+pip install gunicorn
+gunicorn --bind 0.0.0.0:8000 fridge_backend.wsgi

@@ -150,3 +150,24 @@ def convertDate(date_str):
                 })
             print(parsed_date)
         return parsed_date
+
+class NotifSerializer(serializers.Serializer):
+    id = serializers.IntegerField(required=True)
+    expiry_date = serializers.DateField(required=False)
+    name = serializers.CharField(required=True)
+    category = serializers.ChoiceField(choices=Categories.choices, required=False)
+    message = serializers.SerializerMethodField()
+
+    def get_message(self, obj):
+        #if expired
+        if obj.expiry_date < now().date():
+            return f"{obj.name} has expired"
+        #if today
+        elif obj.expiry_date == now().date():
+            return f"{obj.name} is expiring today"
+        #if tomorrow
+        elif obj.expiry_date == now().date() + timedelta(days=1):
+            return f"{obj.name} is expiring tomorrow"
+        #if in the future
+        else:
+            return f"{obj.name} is expiring in {(obj.expiry_date - now().date()).days} days"
