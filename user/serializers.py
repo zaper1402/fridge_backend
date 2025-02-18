@@ -69,11 +69,11 @@ class EntrySerializer(serializers.ModelSerializer):
 
 class UserProductSerializer(serializers.ModelSerializer):
     product = ProductSerializer()
-    brand = serializers.CharField(source='product.brand', read_only=True)
-    quantity_type = serializers.CharField(source='product.quantity_type', read_only=True)
-    quantity = serializers.FloatField(source='product.quantity', read_only=True)
-    expiry = serializers.DateField(source='product.expiry', read_only=True)
-    name = serializers.CharField(source='product.name', read_only=True)
+    brand = serializers.CharField(read_only=True)
+    quantity_type = serializers.CharField()
+    quantity = serializers.FloatField()
+    expiry = serializers.DateField(read_only=True)
+    name = serializers.CharField(read_only=True)
     # entries = EntrySerializer(source='entry_set', many=True)
 
     class Meta:
@@ -84,7 +84,7 @@ class UserProductSerializer(serializers.ModelSerializer):
 class AddProductFormSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=100, required=True)
     brand = serializers.CharField(max_length=100, required=False)
-    expiry = serializers.DateField(required=False, format='%Y-%m-%d')
+    expiry = serializers.DateField(required=False)
     # allergy_tags = serializers.MultipleChoiceField(choices=AllergyTags.choices, required=False)
     quantity = serializers.FloatField(required=True)
     quantity_type = serializers.ChoiceField(choices=QuantityType.choices, required=True)
@@ -100,7 +100,8 @@ class AddProductFormSerializer(serializers.Serializer):
             if expiry_date < now().date():
                 raise serializers.ValidationError("Expiry date cannot be in the past.")
             else:
-                return convertDate(expiry_date)
+                return expiry_date
+               
 
     def create(self, validated_data):
         product = Product.objects.filter(id=validated_data['product_id']).first()
@@ -116,6 +117,7 @@ class AddProductFormSerializer(serializers.Serializer):
         user_product = UserProduct.objects.create(
             user=user,
             product=product,
+            brand=validated_data.get('brand', None),
             name=validated_data['name'],
             quantity_type=validated_data['quantity_type'],
             quantity=validated_data['quantity'],

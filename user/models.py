@@ -48,6 +48,7 @@ class UserProduct(models.Model):
     name = models.CharField(max_length=100, blank=False, null=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateField(auto_now_add=True)
+    brand = models.CharField(max_length=100, blank=True, null=True)
     expiry_date = models.DateField()
     quantity = models.FloatField()
     quantity_type = models.CharField(max_length=50, choices=QuantityType.choices, blank=False, null=False)

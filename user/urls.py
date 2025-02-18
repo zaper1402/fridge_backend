@@ -8,4 +8,5 @@ urlpatterns = [
     path('addProduct', views.addUserProduct, name='addUserProduct'),
     path('get-all-categories', views.getUserProductCategories, name='get_all_categories'),
     path('get-products', views.getUserProductsByCategory, name='get_user_products'),    
+    path('update-products', views.updateUserProducts, name='update_user_products'),
 ]

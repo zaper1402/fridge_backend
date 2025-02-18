@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from user.models import User, UserProduct
 from user.serializers import UserProductSerializer
 from product.models import Product
+from datetime import datetime
 
 
 @csrf_exempt
@@ -77,7 +78,9 @@ def addUserProduct(request):
         # else:   
             data = request.data
             # user = getUserFromToken(verified_token)
-            # data['user_id'] = 2
+            date =  datetime.strptime(data['expiry'], '%d/%m/%Y').date()
+            data['expiry'] = date.strftime('%Y-%m-%d')
+            print(data)
             serializer = AddProductFormSerializer(data=data)
             if serializer.is_valid():
                 product = serializer.save()
@@ -101,7 +104,8 @@ def getUserProductCategories(request):
         # user = getUserFromToken(verified_token)
         user_id = request.GET.get('user_id')
         user_products = UserProduct.objects.filter(user_id=user_id).values('product__category').distinct()
-        return Response(list(user_products), status=200)
+        product_categories = [{'product_category': x['product__category']} for x in user_products]
+        return Response({'categories':product_categories}, status=200)
     else:
         return Response({"error": "Method not allowed."}, status=405)
     
@@ -120,6 +124,42 @@ def getUserProductsByCategory(request):
         category = request.GET.get('category')
         user_products = UserProduct.objects.filter(user_id=user_id, product__category=category)
         serializer = UserProductSerializer(user_products, many=True)
-        return Response(serializer.data, status=200)
+        return Response({"inventory":serializer.data}, status=200)
+    else:
+        return Response({"error": "Method not allowed."}, status=405)
+
+
+# update user products from user products list
+@csrf_exempt
+@api_view(['POST'])
+def updateUserProducts(request):
+    if(request.method == 'POST'):    
+        # token = request.headers.get('Authorization')
+        # verified_token = verify_token_direct(token)
+        # if verified_token.status_code != 200:
+        #     return verified_token
+        # else:   
+        # user = getUserFromToken(verified_token)
+        data = request.data
+        user = User.objects.get(id=data['user_id'])
+        if not user:
+            return Response({"error": "User not found."}, status=404)
+        user_products = data['user_products']
+        for user_product_data in user_products:
+            product_id = user_product_data['id']
+            print(product_id)
+            if not UserProduct.objects.filter(id=product_id).exists():
+                return Response({"error": "Product not found."}, status=404)
+            user_product = UserProduct.objects.get(id=product_id)
+            print(f'{product_id}, {user_product_data["quantity"]}') 
+            user_product_serialized = UserProductSerializer(user_product, data={
+                'quantity': user_product_data['quantity'],
+                'quantity_type': user_product_data['quantity_type']
+            },partial=True)
+            if user_product_serialized.is_valid():
+                user_product_serialized.save()
+            else:
+                return Response(user_product_serialized.errors, status=400)
+        return Response({"message": "Products updated successfully."}, status=200)
     else:
         return Response({"error": "Method not allowed."}, status=405)
