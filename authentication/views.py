@@ -18,8 +18,11 @@ def login(request):
         print(password, usr.password)
         if check_password(password, usr.password):
             token, api_key = Token.objects.get_or_create(user_id=usr.id)
-            print(token, api_key)
-            return Response({"api_key": api_key, "token": token.key}, status=status.HTTP_200_OK)
+            serialized_user = UserSerializer(usr)
+            serialized_data = serialized_user.data
+            serialized_data['api_key'] = api_key
+            serialized_data['token'] = token.key
+            return Response(serialized_data, status=status.HTTP_200_OK)
         else:
             raise PasswordError(AFM0014)
     except Exception as err:

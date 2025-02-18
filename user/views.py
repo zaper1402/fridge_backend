@@ -11,6 +11,25 @@ from product.models import Product
 
 
 @csrf_exempt
+@api_view(['GET'])
+def get_user(request):
+    if(request.method == 'GET'):    
+        token = request.headers.get('Authorization')
+        verified_token = verify_token_direct(token)
+        if verified_token.status_code != 200:
+            # return get user from jwt token
+            uid = request.GET.get('uid')
+            user = User.objects.get(id=uid)
+            serializer = UserSerializer(user)
+            return Response(serializer.data, status=200)
+        else:
+            user = getUserFromToken(verified_token)
+            serializer = UserSerializer(user)
+            return Response(serializer.data, status=200)
+    else:
+        return Response({"error": "Method not allowed."}, status=405)
+
+@csrf_exempt
 @api_view(['POST'])
 def update_user(request):
     if(request.method == 'POST'):    
@@ -21,6 +40,7 @@ def update_user(request):
         # else:
             data = request.data
             email = data.get('email')
+            data['username'] = email
             if email is None or email == "":
                 return Response({"error": "Email is required."}, status=400)
             elif User.objects.filter(email=email).exists() is False:
@@ -35,7 +55,7 @@ def update_user(request):
                 serializer = UserSerializer(user, data=data)
                 if serializer.is_valid():
                     serializer.save()
-                    return Response(serializer.data, status=201)
+                    return Response(serializer.data, status=200)
                 else:
                     return Response(serializer.errors, status=400)
     else:
@@ -68,20 +88,38 @@ def addUserProduct(request):
     else:
         return Response({"error": "Method not allowed."}, status=405)
 
+#def get user product categories
 @csrf_exempt
 @api_view(['GET'])
-def get_product_list(request):
-    # if(request.method == 'GET'):    
+def getUserProductCategories(request):
+    if(request.method == 'GET'):    
         # token = request.headers.get('Authorization')
         # verified_token = verify_token_direct(token)
         # if verified_token.status_code != 200:
         #     return verified_token
         # else:   
-    filters = {}
-    search_string = request.GET.get('search', '')
-    if search_string:            
-        filters['name__icontains'] = search_string
-    products = Product.objects.filter(**filters).values('name', 'id')
-    return Response(list(products), status=201) 
-    # else:
-    #     return Response({"error": "Method not allowed."}, status=405)
+        # user = getUserFromToken(verified_token)
+        user_id = request.GET.get('user_id')
+        user_products = UserProduct.objects.filter(user_id=user_id).values('product__category').distinct()
+        return Response(list(user_products), status=200)
+    else:
+        return Response({"error": "Method not allowed."}, status=405)
+    
+#def get user products by category
+@csrf_exempt
+@api_view(['GET'])
+def getUserProductsByCategory(request):
+    if(request.method == 'GET'):    
+        # token = request.headers.get('Authorization')
+        # verified_token = verify_token_direct(token)
+        # if verified_token.status_code != 200:
+        #     return verified_token
+        # else:   
+        # user = getUserFromToken(verified_token)
+        user_id = request.GET.get('user_id')
+        category = request.GET.get('category')
+        user_products = UserProduct.objects.filter(user_id=user_id, product__category=category)
+        serializer = UserProductSerializer(user_products, many=True)
+        return Response(serializer.data, status=200)
+    else:
+        return Response({"error": "Method not allowed."}, status=405)

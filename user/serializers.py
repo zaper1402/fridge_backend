@@ -1,10 +1,12 @@
 from .models import User
 from rest_framework import serializers
 from product.models import Product
+from product.serializers import ProductSerializer
 from user.models import Entry, UserProduct
-from product.enums import Categories, QuantityType, AllergyTags
+from product.enums import Categories, QuantityType
 from django.utils.timezone import localtime, now
-from datetime import timedelta
+from datetime import timedelta, datetime
+from user.models import User
 
 class UserSerializer(serializers.ModelSerializer):
     mutable_empty_fields = ['email', 'phone_number','gender','date_of_birth']
@@ -16,6 +18,28 @@ class UserSerializer(serializers.ModelSerializer):
             'photo': {'required': False},
             'phone_number': {'required': False},
         }
+
+    def to_internal_value(self, data):
+        if 'date_of_birth' in data and data['date_of_birth']:
+            try:
+                date_str = data['date_of_birth']
+                if isinstance(date_str, str):
+                    # Try to parse date in dd/mm/yyyy format
+                    try:
+                        data['date_of_birth'] = datetime.strptime(date_str, '%d/%m/%Y').date()
+                    except ValueError:
+                        # If dd/mm/yyyy fails, try yyyy-mm-dd
+                        try:
+                            data['date_of_birth'] = datetime.strptime(date_str, '%Y-%m-%d').date()
+                        except ValueError:
+                            raise serializers.ValidationError({
+                                'date_of_birth': 'Invalid date format. Use DD/MM/YYYY or YYYY-MM-DD'
+                            })
+            except ValueError:
+                raise serializers.ValidationError({
+                    'date_of_birth': 'Invalid date format. Use DD/MM/YYYY or YYYY-MM-DD'
+                })
+        return super().to_internal_value(data)
 
 
     def validate(self, data):
@@ -33,10 +57,10 @@ class UserSerializer(serializers.ModelSerializer):
                             )
         return data
 
-class ProductSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Product
-        fields = '__all__'
+# class ProductSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Product
+#         fields = '__all__'
 
 class EntrySerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,7 +69,12 @@ class EntrySerializer(serializers.ModelSerializer):
 
 class UserProductSerializer(serializers.ModelSerializer):
     product = ProductSerializer()
-    entries = EntrySerializer(source='entry_set', many=True)
+    brand = serializers.CharField(source='product.brand', read_only=True)
+    quantity_type = serializers.CharField(source='product.quantity_type', read_only=True)
+    quantity = serializers.FloatField(source='product.quantity', read_only=True)
+    expiry = serializers.DateField(source='product.expiry', read_only=True)
+    name = serializers.CharField(source='product.name', read_only=True)
+    # entries = EntrySerializer(source='entry_set', many=True)
 
     class Meta:
         model = UserProduct
@@ -53,14 +82,14 @@ class UserProductSerializer(serializers.ModelSerializer):
 
 
 class AddProductFormSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=100)
-    category = serializers.ChoiceField(choices=Categories.choices, required=True)
+    name = serializers.CharField(max_length=100, required=True)
     brand = serializers.CharField(max_length=100, required=False)
-    expiry = serializers.DateField(required=False)
-    allergy_tags = serializers.MultipleChoiceField(choices=AllergyTags.choices, required=False)
+    expiry = serializers.DateField(required=False, format='%Y-%m-%d')
+    # allergy_tags = serializers.MultipleChoiceField(choices=AllergyTags.choices, required=False)
     quantity = serializers.FloatField(required=True)
     quantity_type = serializers.ChoiceField(choices=QuantityType.choices, required=True)
     user_id = serializers.IntegerField(required=True)
+    product_id = serializers.IntegerField(required=True)
     
     def set_expiry_date(self, standard_expiry_days, expiry_date):
         if expiry_date is None and standard_expiry_days is None:
@@ -71,41 +100,51 @@ class AddProductFormSerializer(serializers.Serializer):
             if expiry_date < now().date():
                 raise serializers.ValidationError("Expiry date cannot be in the past.")
             else:
-                return expiry_date
+                return convertDate(expiry_date)
 
     def create(self, validated_data):
-        product_filter = {
-            'name__iexact': validated_data['name'],
-            'category': validated_data['category']
-        }
-        if 'brand' in validated_data and validated_data['brand']:
-            product_filter['brand__iexact'] = validated_data['brand']
-
-        product, created = Product.objects.get_or_create(
-            defaults={
-                'name': validated_data['name'],
-                'category': validated_data['category'],
-                'brand': validated_data.get('brand', None),
-                'standard_expiry_days': None,
-                'allergy_tags': list(validated_data.get('allergy_tags', [])),
-                'quantity_type': validated_data['quantity_type'],
-
-                
-            },
-            **product_filter
-        )
-        user_product, _ = UserProduct.objects.get_or_create(
-            user_id=validated_data['user_id'],
-            product_id=product.id,
-            defaults={
-                'product': product,
-            }
-        )
-        entry = Entry.objects.create(
-            user_inventory=user_product,
+        product = Product.objects.filter(id=validated_data['product_id']).first()
+        if not product:
+            raise serializers.ValidationError("Product not found.")
+        
+          # Get user by ID
+        user = User.objects.filter(id=validated_data['user_id']).first()
+        if not user:
+            raise serializers.ValidationError("User not found.")
+    
+        
+        user_product = UserProduct.objects.create(
+            user=user,
+            product=product,
+            name=validated_data['name'],
+            quantity_type=validated_data['quantity_type'],
             quantity=validated_data['quantity'],
-            expiry_date=self.set_expiry_date(product.standard_expiry_days, validated_data.get('expiry', None))
+            expiry_date=self.set_expiry_date(product.standard_expiry_days, validated_data.get('expiry', None)) 
         )
-        # return user product with all entries 
         user_product_data = UserProductSerializer(user_product).data
         return user_product_data
+
+
+def convertDate(date_str):
+        print(date_str)
+        if date_str:
+            parsed_date =  None
+            try:
+                if isinstance(date_str, str):
+                    # Try to parse date in dd/mm/yyyy format
+                    try:
+                        parsed_date = datetime.strptime(date_str, '%d/%m/%Y').date()
+                    except ValueError:
+                        # If dd/mm/yyyy fails, try yyyy-mm-dd
+                        try:
+                            parsed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                        except ValueError:
+                            raise serializers.ValidationError({
+                                'date_of_birth': 'Invalid date format. Use DD/MM/YYYY or YYYY-MM-DD'
+                            })
+            except ValueError:
+                raise serializers.ValidationError({
+                    'date_of_birth': 'Invalid date format. Use DD/MM/YYYY or YYYY-MM-DD'
+                })
+            print(parsed_date)
+        return parsed_date
