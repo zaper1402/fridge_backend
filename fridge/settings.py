@@ -52,7 +52,8 @@ INSTALLED_APPS = [
     'authentication',
     'user',
     'product',
-    'core'
+    'core',
+    'recipes'
 ]
 
 MIDDLEWARE = [

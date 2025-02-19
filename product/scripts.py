@@ -5,6 +5,7 @@ import json
 import os
 from django.conf import settings
 from datetime import datetime
+from utils.utils import parse_array as pa
 
 
 
@@ -22,22 +23,6 @@ def convert_expiry_to_upper_bound(expiry_range):
             return None
     return None
         
-def parse_array_field(value):
-    """Convert string representations of arrays to proper Python lists"""
-    if not value:
-        return None
-    if isinstance(value, str):
-        try:
-            #Filter value named None in list
-            if list(value):
-                #remove None values from list
-                return [item for item in value if item is not None or item != 'None']
-            else:
-                json.loads(value)
-        except json.JSONDecodeError:
-            # If not JSON, split by comma and strip whitespace
-            return [item.strip() for item in value.split(',') if item.strip()]
-    return value
 
 def populate_db():
     # populate product model from excel file
@@ -58,8 +43,8 @@ def populate_db():
         print(f'Updating: {sheet.cell(row=i, column=1).value}')
         product_name = sheet.cell(row=i, column=1).value
         product_category = sheet.cell(row=i, column=2).value
-        product_tags = parse_array_field(sheet.cell(row=i, column=3).value)
-        allergy_tags = parse_array_field(sheet.cell(row=i, column=4).value)
+        product_tags = parse_tags(sheet.cell(row=i, column=3).value)
+        allergy_tags = parse_allergy_tags(sheet.cell(row=i, column=4).value)
         product_standard_expiry_days = convert_expiry_to_upper_bound(sheet.cell(row=i, column=5).value)
         # create or update a product object
         product = Product.objects.filter(name=product_name).first()
@@ -85,3 +70,15 @@ def populate_db():
             product_serializer.save()
         else:
             print(product_serializer.errors)
+
+def parse_tags(tags):
+    tags = tags.replace('[', '').replace(']', '')
+    if tags:
+        return tags.split(',').strip()
+    return []
+
+def parse_allergy_tags(allergy_tags):
+    allergy_tags = allergy_tags.replace('[', '').replace(']', '')
+    if allergy_tags:
+        return allergy_tags.split(' ').strip()
+    return []
