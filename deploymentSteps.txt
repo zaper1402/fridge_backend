@@ -1,4 +1,8 @@
 Connect to AWS instance
+cd fridge_backend/
+
+python3 -m venv venv
+source venv/bin/activate
 
 sudo apt update && sudo apt upgrade -y
 sudo apt install python3 python3-pip python3-venv git -y
@@ -9,10 +13,8 @@ sudo apt install postgresql postgresql-contrib -y
 
 
 
-cd fridge_backend/
 
-python3 -m venv venv
-source venv/bin/activate
+
 
 python manage.py makemigrations
 python manage.py migrate
