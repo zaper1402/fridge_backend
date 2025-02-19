@@ -1,4 +1,5 @@
 from django.db import models
+from user.models import User
 
 # Create your models here.
 #Collumn : Name	Image URL	Time to Cook	Difficulty	Servings	Description	Cuisine Tags	Ingredients	Instructions																	
@@ -20,6 +21,17 @@ class Recipe(models.Model):
 
     def __str__(self):
         return self.name
+    
+
+class Favourite(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+    date_favourited = models.DateTimeField(auto_now_add=True)
+    
+    unique_together = ('user', 'recipe')
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.recipe.name}"
     
 
 

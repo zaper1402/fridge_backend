@@ -10,7 +10,6 @@ from user.serializers import UserProductSerializer, NotifSerializer
 from product.models import Product
 from datetime import datetime, timedelta
 
-
 @csrf_exempt
 @api_view(['GET'])
 def get_user(request):

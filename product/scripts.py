@@ -5,7 +5,6 @@ import json
 import os
 from django.conf import settings
 from datetime import datetime
-from utils.utils import parse_array as pa
 
 
 
@@ -72,13 +71,19 @@ def populate_db():
             print(product_serializer.errors)
 
 def parse_tags(tags):
-    tags = tags.replace('[', '').replace(']', '')
-    if tags:
-        return tags.split(',').strip()
+    if isinstance(tags, list):
+        return tags
+    else:
+        tags = tags.replace('[', '').replace(']', '')
+        if tags:
+            return [tag.strip() for tag in tags.split(',')]
     return []
 
 def parse_allergy_tags(allergy_tags):
-    allergy_tags = allergy_tags.replace('[', '').replace(']', '')
-    if allergy_tags:
-        return allergy_tags.split(' ').strip()
+    if isinstance(allergy_tags, list):
+        return allergy_tags
+    else:
+        allergy_tags = allergy_tags.replace('[', '').replace(']', '')
+        if allergy_tags:
+            return [tag.strip() for tag in allergy_tags.split(' ')]
     return []
