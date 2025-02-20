@@ -13,3 +13,5 @@ python-dotenv>=1.0.1
 
 #pillow
 Pillow>=9.0.0
+
+decouple>=3.5
