@@ -10,3 +10,5 @@ class Product(models.Model):
     standard_expiry_days = models.IntegerField(blank=True, null=True)
     allergy_tags = ArrayField(models.CharField(max_length=50, choices=AllergyTags.choices), blank=True, null=True)
     # quantity_type = models.CharField(max_length=50, choices=QuantityType.choices, blank=False, null=False, default='KG')
+
+    # quantity_type = models.CharField(max_length=50, choices=QuantityType.choices, blank=False, null=False, default='KG')
