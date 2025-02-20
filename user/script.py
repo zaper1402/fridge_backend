@@ -11,31 +11,42 @@ import pandas as pd
 import os
 from user.models import Meals, Cuisine
 import re
+import random
 from django.conf import settings
 
 
 def populate_recipes_db():    
-    excel_path = os.path.join(settings.BASE_DIR, 'recipes', 'recipes.xlsx')
+    excel_path = '/home/auriga/Downloads/recipes.xlsx'
 
-Cuisine.objects.create(name='Chinese', image_url='https://d2vsf1hynzxim7.cloudfront.net/production/media/12807/responsive-images/foodnetwork-image-e87cbe2d-6bf2-4a33-b526-0d7a4f2f7afb___default_196_147.jpeg')
-Cuisine.objects.create(name='Italian', image_url='https://d2vsf1hynzxim7.cloudfront.net/production/media/12807/responsive-images/foodnetwork-image-e87cbe2d-6bf2-4a33-b526-0d7a4f2f7afb___default_196_147.jpeg')
-Cuisine.objects.create(name='Korean', image_url='https://d2vsf1hynzxim7.cloudfront.net/production/media/12807/responsive-images/foodnetwork-image-e87cbe2d-6bf2-4a33-b526-0d7a4f2f7afb___default_196_147.jpeg')
+# from user.models import Meals, Cuisine
+# Cuisine.objects.create(name='Chinese', image_url='https://d2vsf1hynzxim7.cloudfront.net/production/media/12807/responsive-images/foodnetwork-image-e87cbe2d-6bf2-4a33-b526-0d7a4f2f7afb___default_196_147.jpeg')
+# Cuisine.objects.create(name='Italian', image_url='https://d2vsf1hynzxim7.cloudfront.net/production/media/12807/responsive-images/foodnetwork-image-e87cbe2d-6bf2-4a33-b526-0d7a4f2f7afb___default_196_147.jpeg')
+# Cuisine.objects.create(name='Korean', image_url='https://d2vsf1hynzxim7.cloudfront.net/production/media/12807/responsive-images/foodnetwork-image-e87cbe2d-6bf2-4a33-b526-0d7a4f2f7afb___default_196_147.jpeg')
 
 
 
     df = pd.read_excel(excel_path)
     for index, row in df.iterrows():
         try:
+            diff = 1
+            if row['Difficulty'] == 'VERY EASY':
+                diff = 1
+            if row['Difficulty'] == 'EASY':
+                diff = 2
+            if row['Difficulty'] == 'MEDIUM':
+                diff = 3
             recipe, created = Meals.objects.update_or_create(
                 # Unique fields to identify existing recipe
                 name=row['Name'],
                 defaults={
                     'image_url': row['Image URL'],
+                    'name':row['Name'],
                     'recipe_time': convert_time_to_minutes(row['Time to Cook']),
-                    'recipe_type': row['Difficulty'],
+                    'recipe_type': diff,
+                    'category_id':random.choice([1, 2, 3]),
                     # 'servings': convert_to_int(row['Servings']),
                     'details': row['Description'],
-                    'cuisine_tags': list(map(lambda x: x.strip(), row['Cuisine Tags'].split(','))),
+                    # 'cuisine_tags': list(map(lambda x: x.strip(), row['Cuisine Tags'].split(','))),
                     # 'ingredients': parse_ingredients(row['Ingredients']),
                     'steps': parse_instructions(row['Instructions'])
                 }

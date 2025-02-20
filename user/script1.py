@@ -46,7 +46,6 @@ def populate_db():
         product_tags = parse_tags(sheet.cell(row=i, column=3).value)
         allergy_tags = parse_allergy_tags(sheet.cell(row=i, column=4).value)
         product_standard_expiry_days = convert_expiry_to_upper_bound(sheet.cell(row=i, column=5).value)
-        print(product_category.replace(' ', '_').upper())
         # create or update a product object
         product = Product.objects.filter(name=product_name).first()
         

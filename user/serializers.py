@@ -104,7 +104,7 @@ class   AddProductFormSerializer(serializers.Serializer):
         )
         user_product, _ = UserProduct.objects.get_or_create(
             user_id=validated_data['user_id'],
-            subname=validated_data['subname'],
+            subname=validated_data.get('subname', ''),
             product_id=product.id,
             defaults={
                 'product': product,
