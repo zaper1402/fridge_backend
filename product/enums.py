@@ -169,6 +169,7 @@ class AllergyTags(models.TextChoices):
     OATS = 'OATS', 'Oats'
     GELATIN = 'GELATIN', 'Gelatin'
     FISH = 'FISH', 'Fish'
+    NONE = '', ''
 
 
 class QuantityType(models.TextChoices):

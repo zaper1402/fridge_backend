@@ -64,6 +64,7 @@ def addUserProduct(request):
                 return Response(product, status=200) 
                 
             else:
+                print(serializer.errors)
                 return Response(serializer.errors, status=400)
     else:
         return Response({"error": "Method not allowed."}, status=405)
