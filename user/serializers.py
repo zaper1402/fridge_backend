@@ -34,19 +34,9 @@ class UserSerializer(serializers.ModelSerializer):
         return data
 
 class ProductSerializer(serializers.ModelSerializer):
-    total_qt= serializers.SerializerMethodField()
-
-    def get_total_qt(self, obj):
-        user_id = self.context.get('user_id', '')
-        if user_id:
-            user_product = UserProduct.objects.filter(user_id=user_id, product_id=obj.id).first()
-            entries = Entry.objects.filter(user_inventory=user_product.id).values_list("quantity", flat=True)
-            return sum(entries)
-        return 0
-        
     class Meta:
         model = Product
-        fields = ['total_qt', 'name','brand', 'standard_expiry_days', 'category', 'allergy_tags', 'quantity_type']
+        fields = ['total_qt', 'name', 'standard_expiry_days', 'category', 'allergy_tags']
 
 class EntrySerializer(serializers.ModelSerializer):
     class Meta:
@@ -56,20 +46,22 @@ class EntrySerializer(serializers.ModelSerializer):
 class UserProductSerializer(serializers.ModelSerializer):
     product = ProductSerializer()
     entries = EntrySerializer(source='entry_set', many=True)
+    name = serializers.CharField(source='subname')
 
     class Meta:
         model = UserProduct
-        fields = '__all__'
+        fields = ['product', 'entries', 'name']
 
 
-class AddProductFormSerializer(serializers.Serializer):
+class   AddProductFormSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=100)
     category = serializers.ChoiceField(choices=Categories.choices, required=True)
-    brand = serializers.CharField(max_length=100, required=False)
+    subname = serializers.CharField(max_length=100, required=False)
     expiry = serializers.DateField(required=False)
     allergy_tags = serializers.MultipleChoiceField(choices=AllergyTags.choices, required=False)
     quantity = serializers.FloatField(required=True)
-    quantity_type = serializers.ChoiceField(choices=QuantityType.choices, required=True)
+    
+    # quantity_type = serializers.ChoiceField(choices=QuantityType.choices, required=True)
     user_id = serializers.IntegerField(required=True)
     
     def set_expiry_date(self, standard_expiry_days, expiry_date):
@@ -89,23 +81,20 @@ class AddProductFormSerializer(serializers.Serializer):
             'category': validated_data['category']
         }
         if 'brand' in validated_data and validated_data['brand']:
-            product_filter['brand__iexact'] = validated_data['brand']
+            product_filter['brand'] = validated_data['brand']
 
         product, created = Product.objects.get_or_create(
             defaults={
                 'name': validated_data['name'],
                 'category': validated_data['category'],
-                'brand': validated_data.get('brand', None),
                 'standard_expiry_days': None,
-                'allergy_tags': list(validated_data.get('allergy_tags', [])),
-                'quantity_type': validated_data['quantity_type'],
-
-                
+                'allergy_tags': list(validated_data.get('allergy_tags', '')) if validated_data.get('allergy_tags', '') else [],
             },
             **product_filter
         )
         user_product, _ = UserProduct.objects.get_or_create(
             user_id=validated_data['user_id'],
+            subname=validated_data['subname'],
             product_id=product.id,
             defaults={
                 'product': product,

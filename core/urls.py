@@ -17,6 +17,7 @@ urlpatterns = [
     path('add-favs', views.add_favs, name='add_favs'),
     path('remove-favs', views.remove_favs, name='remove_favs'),
     path('list-favs', views.list_favs, name='list_favs'),
+    path('get-ingredients', views.get_ingredients, name='get_ingredients'),
     
 
     

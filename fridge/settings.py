@@ -14,7 +14,9 @@ from pathlib import Path
 import firebase_admin
 from firebase_admin import credentials, firestore
 import os
-from decouple import config
+from dotenv import load_dotenv
+
+load_dotenv()
 
 cred = credentials.Certificate('fridge-663e4-firebase-adminsdk-7hlo1-e6f04fa70f.json')
 firebase_admin.initialize_app(cred)
@@ -88,14 +90,18 @@ WSGI_APPLICATION = 'fridge.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-      'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',  # PostGIS backend
-        'NAME': config('DB_NAME', default='your_database_name'),
-        'USER': config('DB_USER', default='your_user'),
-        'PASSWORD': config('DB_PASSWORD', default='your_password'),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default=5432),
-    },
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
+    # }
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'), 
+        'USER': os.getenv('DB_USER'),  
+        'PASSWORD': os.getenv('DB_PASSWORD'),  # Master password
+        'HOST': os.getenv('DB_HOST'),  # RDS endpoint
+        'PORT': os.getenv('DB_PORT'),  # Default PostgreSQL port
+    }
 }
 
 

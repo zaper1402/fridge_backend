@@ -14,11 +14,10 @@ from django.contrib.auth.hashers import (
 
 
 class User(AbstractUser):
-    username = models.CharField(max_length=150,unique=False,null=True, blank=True)
     name = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
+    email = models.EmailField()
     phone_number = models.CharField(max_length=20, blank=True, null=True)
-    date_of_birth = models.DateTimeField(blank=True, null=True)
+    date_of_birth = models.DateField(blank=True, null=True)
     gender = models.CharField(max_length=10, choices=GenderChoices.choices, blank=True, null=True)
     photo = models.ImageField(upload_to='photos/', blank=True,null=True)
     preferences = ArrayField(
@@ -29,11 +28,9 @@ class User(AbstractUser):
     groups = models.ManyToManyField(Group, related_name="custom_user_groups", blank=True)
     user_permissions = models.ManyToManyField(Permission, related_name="custom_user_permissions", blank=True)
 
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS=[]
-
 class UserProduct(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    subname = models.CharField(max_length=100, blank=False, null=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_product")
     @property
     def total_quantity(self):
@@ -42,49 +39,9 @@ class UserProduct(models.Model):
 class Entry(models.Model):
     user_inventory = models.ForeignKey(UserProduct, on_delete=models.CASCADE)
     quantity = models.FloatField()
-    expiry_date = models.DateTimeField()
+    expiry_date = models.DateField()
     creation_date = models.DateField(auto_now_add=True)  
 
-
-class WishlistProduct(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="wishlist_user_product")
-    class Meta:
-        constraints = [models.UniqueConstraint(fields=['product', 'user'], name='user_product_unique')]
-
-
-class Cuisine(models.Model):
-    name = models.CharField(max_length=100, null=True, blank=True)
-    image_url = models.CharField(max_length=100, null=True, blank=True)
-
-class Meals(models.Model):
-
-    STATUS_CHOICE = [
-        (1, 'Dinner'),
-        (2, 'Breakfast'),
-        (3, 'Lunch')
-    ]
-    TYPE_CHOICE = [
-        (1, 'Easy'),
-        (2, 'Medium'),
-        (3, 'Hard')
-    ]
-    name = models.CharField(max_length=100, null=True, blank=True)
-    subtitle = models.CharField(max_length=100, null=True, blank=True)
-    category = models.ForeignKey(Cuisine, on_delete=models.CASCADE)
-    image_url = models.CharField(max_length=100, null=True, blank=True)
-    recipe_type = models.SlugField(choices=TYPE_CHOICE, max_length=2, null=True, blank=True)
-    recipe_time = models.CharField(max_length=100, null=True, blank=True)
-    meal_type = models.SlugField(choices=STATUS_CHOICE, max_length=2, null=True, blank=True)
-    details = models.TextField(null=True, blank=True)
-    ingredients = models.JSONField(null = True , blank = True , default = None)
-    steps = models.JSONField(null = True , blank = True , default = None)
-
-class FavRecipes(models.Model):
-    recipes = models.ForeignKey(Meals, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="wishlist_user_recipes")
-    class Meta:
-        constraints = [models.UniqueConstraint(fields=['recipes', 'user'], name='user_recipes_unique')]
 
 
 
