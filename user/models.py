@@ -43,5 +43,45 @@ class Entry(models.Model):
     creation_date = models.DateField(auto_now_add=True)  
 
 
+class WishlistProduct(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="wishlist_user_product")
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['product', 'user'], name='user_product_unique')]
+
+
+class Cuisine(models.Model):
+    name = models.CharField(max_length=100, null=True, blank=True)
+    image_url = models.CharField(max_length=500, null=True, blank=True)
+
+class Meals(models.Model):
+
+    STATUS_CHOICE = [
+        (1, 'Dinner'),
+        (2, 'Breakfast'),
+        (3, 'Lunch')
+    ]
+    TYPE_CHOICE = [
+        (1, 'Very Easy'),
+        (2, 'Easy'),
+        (3, 'Medium')
+    ]
+    name = models.CharField(max_length=100, null=True, blank=True)
+    subtitle = models.CharField(max_length=100, null=True, blank=True)
+    category = models.ForeignKey(Cuisine, on_delete=models.CASCADE)
+    image_url = models.CharField(max_length=500, null=True, blank=True)
+    recipe_type = models.SlugField(choices=TYPE_CHOICE, max_length=2, null=True, blank=True)
+    recipe_time = models.CharField(max_length=100, null=True, blank=True)
+    meal_type = models.SlugField(choices=STATUS_CHOICE, max_length=2, null=True, blank=True)
+    details = models.TextField(null=True, blank=True)
+    ingredients = models.JSONField(null = True , blank = True , default = None)
+    steps = models.JSONField(null = True , blank = True , default = None)
+
+class FavRecipes(models.Model):
+    recipes = models.ForeignKey(Meals, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="wishlist_user_recipes")
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['recipes', 'user'], name='user_recipes_unique')]
+
 
 
