@@ -89,7 +89,7 @@ WSGI_APPLICATION = 'fridge.wsgi.application'
 
 DATABASES = {
       'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',  # PostGIS backend
+        'ENGINE': 'django.db.backends.postgresql',  # Standard PostgreSQL backend
         'NAME': config('DB_NAME', default='your_database_name'),
         'USER': config('DB_USER', default='your_user'),
         'PASSWORD': config('DB_PASSWORD', default='your_password'),
