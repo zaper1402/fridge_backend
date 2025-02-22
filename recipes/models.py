@@ -14,6 +14,7 @@ class Recipe(models.Model):
     servings = models.IntegerField(null=True)
     description = models.TextField()
     cuisine_tags = models.JSONField()
+    cuisines = models.JSONField(blank=True, null=True)
     ingredients = models.JSONField(null=False, blank=False)
     instructions = models.JSONField(null=False, blank=False)
 

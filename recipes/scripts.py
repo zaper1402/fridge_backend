@@ -12,33 +12,44 @@ import os
 from recipes.models import Recipe
 import re
 from django.conf import settings
-
+from recipes.enums import Cuisine
+from product.models import Product
 
 def populate_recipes_db():    
     excel_path = os.path.join(settings.BASE_DIR, 'recipes', 'recipes.xlsx')
 
-    df = pd.read_excel(excel_path)
-    for index, row in df.iterrows():
-        try:
-            recipe, created = Recipe.objects.update_or_create(
-                # Unique fields to identify existing recipe
-                name=row['Name'],
-                defaults={
-                    'image_url': row['Image URL'],
-                    'time_to_cook': convert_time_to_minutes(row['Time to Cook']),
-                    'difficulty': row['Difficulty'],
-                    'servings': convert_to_int(row['Servings']),
-                    'description': row['Description'],
-                    'cuisine_tags': list(map(lambda x: x.strip(), row['Cuisine Tags'].split(','))),
-                    'ingredients': parse_ingredients(row['Ingredients']),
-                    'instructions': parse_instructions(row['Instructions'])
-                }
-            )
-            # print(f"{'Created' if {created} else 'Updated'} recipe: {recipe.name}")
-        except Exception as e:
-            print(f"Error creating recipe: {row['Name']} => {e}")
-            continue
-        recipe.save()
+    excel_file = pd.ExcelFile(excel_path)
+    sheet_names = excel_file.sheet_names
+    
+    for sheet_name in sheet_names:
+        print(f"Processing sheet: {sheet_name}")
+        df = pd.read_excel(excel_file, sheet_name=sheet_name)
+        
+        df = pd.read_excel(excel_path)
+        for index, row in df.iterrows():
+            try:
+                # print(str(parse_ingredients(row['Ingredients'])))
+                recipe, created = Recipe.objects.update_or_create(
+                    # Unique fields to identify existing recipe
+                    name=row['Name'],
+                    defaults={
+                        'image_url': row['Image URL'],
+                        'time_to_cook': convert_time_to_minutes(row['Time to Cook']),
+                        'difficulty': row['Difficulty'],
+                        'servings': convert_to_int(row['Servings']),
+                        'description': row['Description'],
+                        'cuisine_tags': list(map(lambda x: x.strip(), row['Cuisine Tags'].split(','))),
+                        'cuisines': parse_cuisines(row['Cuisine Tags']),
+                        'ingredients': parse_ingredients(row['Ingredients']),
+                        'instructions': parse_instructions(row['Instructions'])
+                    }
+                )
+                print(f"{'Created' if {created} else 'Updated'} recipe: {recipe.name}")
+            except Exception as e:
+                print(f"Error creating recipe: {row['Name']} => {e}")
+                continue
+            # recipe.save()
+
 
 def convert_time_to_minutes(time):
     try:
@@ -62,15 +73,40 @@ def convert_to_int(value):
     except:
         return None
     
+def parse_cuisines(cuisine_tags : str):
+    cuisines = set()
+    for cuisine in Cuisine:
+        if cuisine.name in cuisine_tags.upper():
+            cuisines.add(cuisine.name)
+    
+    cuisines = [item for item in cuisines]
+    print(cuisines)
+    return cuisines
 
-def parse_ingredients(ingredients : str):
-    #Sample data
-    #[Kosher salt], [2 cups old-fashioned oats], 1 cup 2-percent Greek yogurt
-    #Expected output  : ['Kosher salt', '2 cups old-fashioned oats', '1 cup 2-percent Greek yogurt']
+def parse_ingredients(ingredients: str):
+    ingredients_json = []
     ingredients = ingredients.replace('[', '').replace(']', '')
-    #return strip all (, & spaces) from each item in the array
-    #filter all item less than length 3
-    return [item.strip() for item in ingredients.split(',')]
+    
+    # Clean and filter ingredients
+    ingredients_raw = [
+        item.strip() 
+        for item in ingredients.split(',') 
+    ]
+
+    products = Product.objects.all()
+    for ingredient in ingredients_raw:
+        ingredient_data = {
+            'id': None,
+            'name': ingredient
+        }
+        for product in products:
+            # Compare product name with ingredient text
+            if product.name.lower() in ingredient.lower():
+                ingredient_data['id'] = product.id
+                ingredients_json.append(ingredient_data)
+                break
+    
+    return ingredients_json
 
 def parse_instructions(instructions : str):
     #Sample data

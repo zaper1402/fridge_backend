@@ -3,7 +3,7 @@ from .models import Recipe , Favourite
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
-from .serializers import RecipeSerializer
+from .serializers import RecipeSerializer, RecipeCategorySerializer
 from user.models import UserProduct
 from user.views import verify_token_direct, getUserFromToken
 from user.serializers import UserProductSerializer
@@ -28,6 +28,9 @@ def get_cusines_tags(request):
 @csrf_exempt
 @api_view(['GET'])
 def get_recipes_by_cuisine(request):
+    user_id = request.GET.get('uid')
+    if not user_id: 
+        return Response({"error":"User ID is required"}, status=400)
     cuisine = request.GET.get('cuisine')
     
     if not cuisine:
@@ -35,20 +38,24 @@ def get_recipes_by_cuisine(request):
     if cuisine not in Cuisine.names:
         return Response({"error":"Valid Cuisine is required"}, status=400)
     try:
-        recipes_data = Recipe.objects.filter(cuisine_tags__icontains=cuisine)
-        recipes = RecipeSerializer(recipes_data, many=True).data
+        recipes = Recipe.objects.filter(
+            Q(cuisines__contains=[cuisine]) |
+            Q(cuisines=[]) |
+            Q(cuisines__isnull=True)
+        )
+        if not recipes.exists():
+            return Response({"error": "No recipes found"}, status=404)
+            
         limit = int(request.GET.get('limit', 20))
-        breakfast = [recipe for recipe in recipes if any('BREAKFAST' in tag.upper() for tag in recipe['cuisine_tags'])][:limit]
-        lunch = [recipe for recipe in recipes if any('LUNCH' in tag.upper() for tag in recipe['cuisine_tags'])][:limit]
-        dinner = [recipe for recipe in recipes if any('DINNER' in tag.upper() for tag in recipe['cuisine_tags'])][:limit]
-        
-        separated_recipes = {
-            "breakfast_recipes": breakfast,
-            "lunch_recipes": lunch,
-            "dinner_recipes": dinner
-        }
-    
-        return Response(separated_recipes, status=200)
+        serializer = RecipeCategorySerializer(
+            recipes,
+            context={
+                'user_id': user_id,
+                'limit': limit,
+                'cuisine': cuisine
+            }
+        )
+        return Response(serializer.data, status=200)
     except Exception as e:
         return Response({"error":str(e)}, status=500)
 
@@ -94,10 +101,13 @@ def recipe_favourite(request):
     if request.method == 'GET':
         user_id = request.GET.get('uid')
         if not user_id:
-            return Response({"error": "User ID is required."}, status=400)
+            return Response({"error": "uid is required."}, status=400)
         favourites = Favourite.objects.filter(user_id=user_id)
         recipes = Recipe.objects.filter(id__in=[f.recipe_id for f in favourites])
-        serializer = RecipeSerializer(recipes, many=True)
+        serializer = RecipeSerializer(
+            recipes, 
+            many=True
+        )
         return Response({"recipes": serializer.data}, status=200)
     elif request.method == 'POST':
         data = request.data
@@ -117,7 +127,10 @@ def recipe_favourite(request):
             Favourite.objects.filter(user_id=user_id, recipe_id=recipe_id).delete()
         favourites = Favourite.objects.filter(user_id=user_id)
         recipes = Recipe.objects.filter(id__in=[f.recipe_id for f in favourites])
-        serializer = RecipeSerializer(recipes, many=True)
+        serializer = RecipeSerializer(
+            recipes, 
+            many=True
+        )
         return Response({"recipes": serializer.data}, status=200)
     else:
         return Response({"error": "Method not allowed."}, status=405)
