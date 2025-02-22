@@ -12,7 +12,10 @@ class CuisineSerializer(serializers.Serializer):
 
     def get_cuisines(self, obj):
         cuisines = []
-        cuisines = Cuisine.names
-        distinct_cuisines = list(set(cuisines))
-        return distinct_cuisines
+        for Cu in Cuisine:
+            cuisines.append({
+                "id": Cu.name,
+                "name": Cu.value
+            })
+        return cuisines
     

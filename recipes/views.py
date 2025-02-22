@@ -9,6 +9,7 @@ from user.views import verify_token_direct, getUserFromToken
 from user.serializers import UserProductSerializer
 from django.db.models import Q
 from .serializers import CuisineSerializer
+from .enums import Cuisine
 
 # Create your views here.
 
@@ -28,8 +29,11 @@ def get_cusines_tags(request):
 @api_view(['GET'])
 def get_recipes_by_cuisine(request):
     cuisine = request.GET.get('cuisine')
+    
     if not cuisine:
         return Response({"error":"Cuisine is required"}, status=400)
+    if cuisine not in Cuisine.names:
+        return Response({"error":"Valid Cuisine is required"}, status=400)
     try:
         recipes_data = Recipe.objects.filter(cuisine_tags__icontains=cuisine)
         recipes = RecipeSerializer(recipes_data, many=True).data

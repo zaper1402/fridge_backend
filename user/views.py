@@ -9,6 +9,7 @@ from user.models import User, UserProduct
 from user.serializers import UserProductSerializer, NotifSerializer
 from product.models import Product
 from datetime import datetime, timedelta
+from recipes.serializers import CuisineSerializer
 
 @csrf_exempt
 @api_view(['GET'])
@@ -104,7 +105,9 @@ def getUserProductCategories(request):
         user_id = request.GET.get('user_id')
         user_products = UserProduct.objects.filter(user_id=user_id).values('product__category').distinct()
         product_categories = [{'product_category': x['product__category']} for x in user_products]
-        return Response({'categories':product_categories}, status=200)
+        cuisine_categories = CuisineSerializer(user_id).data['cuisines']
+        return Response({'categories':product_categories,
+                            'cuisines_categories':cuisine_categories}, status=200)
     else:
         return Response({"error": "Method not allowed."}, status=405)
     
