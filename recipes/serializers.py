@@ -34,15 +34,15 @@ class RecipeCategorySerializer(serializers.ModelSerializer):
 
     def get_breakfast_recipes(self, obj : QuerySet):
         recipes = obj.filter(cuisine_tags__icontains='BREAKFAST')
-        return self.sort_by_matching_ingredients(recipes[:self._limit])
+        return self.sort_by_matching_ingredients(recipes)
     
     def get_lunch_recipes(self, obj : QuerySet):
         recipes = obj.filter(cuisine_tags__icontains='LUNCH')
-        return self.sort_by_matching_ingredients(recipes[:self._limit])
+        return self.sort_by_matching_ingredients(recipes)
     
     def get_dinner_recipes(self, obj : QuerySet):
         recipes = obj.filter(cuisine_tags__icontains='DINNER')
-        return self.sort_by_matching_ingredients(recipes[:self._limit])
+        return self.sort_by_matching_ingredients(recipes)
     
     def sort_by_matching_ingredients(self, recipes):
         """
@@ -69,7 +69,7 @@ class RecipeCategorySerializer(serializers.ModelSerializer):
             for recipe in sorted_recipes
         ]
         
-        return recipes_with_matches
+        return recipes_with_matches[:self._limit]
 
 class CuisineSerializer(serializers.Serializer):
     cuisines = serializers.SerializerMethodField()
