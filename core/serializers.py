@@ -3,10 +3,14 @@ from user.models import UserProduct, Entry
 from product.enums import Categories
 from user.serializers import UserProductSerializer
 from django.utils.timezone import now
+from recipes.models import Recipe
+from recipes.serializers import CuisineSerializer
+from recipes.enums import Cuisine
 
 class HomeDataSerializer(serializers.Serializer):
     inventory = serializers.SerializerMethodField()
     alerts = serializers.SerializerMethodField()
+    cuisines =serializers.SerializerMethodField()
 
 
     def get_inventory(self, obj):
@@ -33,6 +37,12 @@ class HomeDataSerializer(serializers.Serializer):
             product.entries = Entry.objects.filter(user_inventory=product)
             alerts += create_alert_if_needed(product)
         return alerts
+    
+    def get_cuisines(self, obj):
+        cuisines = []
+        cuisines = Cuisine.names
+        distinct_cuisines = list(set(cuisines))
+        return distinct_cuisines
     
 def create_alert_if_needed(user_product: UserProduct):
     alerts = []

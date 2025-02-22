@@ -15,6 +15,7 @@ def login(request):
         email = request.data.get('email')
         password = request.data.get('password')
         usr = User.objects.filter(email=email).first()
+        print(usr)
         print(password, usr.password)
         if check_password(password, usr.password):
             token, api_key = Token.objects.get_or_create(user_id=usr.id)

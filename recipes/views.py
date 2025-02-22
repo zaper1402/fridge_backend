@@ -8,6 +8,7 @@ from user.models import UserProduct
 from user.views import verify_token_direct, getUserFromToken
 from user.serializers import UserProductSerializer
 from django.db.models import Q
+from .serializers import CuisineSerializer
 
 # Create your views here.
 
@@ -16,10 +17,8 @@ from django.db.models import Q
 @api_view(['GET'])
 def get_cusines_tags(request):
     try:
-        cuisines = Recipe.objects.values_list('cuisine_tags', flat=True)
-        flat_cuisines = [item for sublist in cuisines for item in sublist]
-        distinct_cuisines = list(set(flat_cuisines))
-        return Response({"cusines":distinct_cuisines}, status=200)
+        cuisines = CuisineSerializer(request.data).data['cuisines']
+        return Response({"cuisines": cuisines}, status=200)
     except Exception as e:
         return Response({"error":str(e)}, status=500)
 

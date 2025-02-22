@@ -1,0 +1,26 @@
+from django.db import models
+
+# All Cuisines
+class Cuisine(models.TextChoices):
+    AMERICAN = 'American'
+    CHINESE = 'Chinese'
+    FRENCH = 'French'
+    GREEK = 'Greek'
+    INDIAN = 'Indian'
+    INDONESIAN = 'Indonesian'
+    ITALIAN = 'Italian'
+    JAPANESE = 'Japanese'
+    KOREAN = 'Korean'
+    LEBANESE = 'Lebanese'
+    MALAYSIAN = 'Malaysian'
+    MEDITERRANEAN = 'Mediterranean'
+    MEXICAN = 'Mexican'
+    MIDDLE_EASTERN = 'Middle Eastern'
+    MOROCCAN = 'Moroccan'
+    SPANISH = 'Spanish'
+    THAI = 'Thai'
+    TURKISH = 'Turkish'
+    VIETNAMESE = 'Vietnamese'
+    BRITISH = 'British'
+    PAN_ASIAN = 'Pan Asian'
+    WESTERN = 'Western'
