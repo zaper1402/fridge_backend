@@ -10,6 +10,8 @@ from user.models import Entry, WishlistProduct, Cuisine, Meals, FavRecipes
 from core.serializers import RecipeDetailsSerializer, RecipesSerializer, HomeDataSerializer
 from product.enums import *
 
+from user.models import User
+
 # Create your views here.
 
 
@@ -35,6 +37,7 @@ def update_quantity(request):
         for entry_data in entries_data:
             entry_id = entry_data.get('entry_id')
             quantity = entry_data.get('quantity')
+            quantity_type = entry_data.get('quantity_type')
 
             if entry_id is None or quantity is None:
                 continue  # Skip invalid entries
@@ -42,10 +45,11 @@ def update_quantity(request):
             entry = Entry.objects.filter(id=entry_id).first()
             if entry:
                 entry.quantity = quantity
+                entry.quantity_type=quantity_type
                 entries_to_update.append(entry)
         print(entries_to_update)
         if entries_to_update:
-            Entry.objects.bulk_update(entries_to_update, ['quantity'])  # Efficient batch update
+            Entry.objects.bulk_update(entries_to_update, ['quantity', 'quantity_type'])  # Efficient batch update
 
         return Response(status=200) 
     except Exception as err:
@@ -77,8 +81,10 @@ def expiry(request):
 def home_data(request):
     if request.method == 'POST':
         user_id = request.data.get('user_id')
-        serializer = HomeDataSerializer(data={'user_id': user_id})
+        username = User.objects.filter(id=user_id).values('name').first()
+        serializer = HomeDataSerializer(data={'user_id': user_id, "username":username})
         if serializer.is_valid():
+            # serializer.data['username'] = username
             return Response(serializer.data)
         else:
             return Response(serializer.errors, status=400)
@@ -171,7 +177,7 @@ def get_recipes(request):
     
     favs = FavRecipes.objects.filter(user_id = user_id).values_list('recipes_id', flat=True)
     items = Meals.objects.filter(meal_type=meal_type, category_id=cuisine)
-    serializer = RecipesSerializer(items, many=True, context={"fav_meals":favs})
+    serializer = RecipesSerializer(items, many=True, context={"fav_meals":favs, "user_id":user_id})
     return Response({"data": serializer.data}, status=200)
 
 
@@ -180,8 +186,10 @@ def get_recipes(request):
 def get_recipe_details(request):
     request_data = request.GET
     recipe_id = request_data.get('id', '')
+    user_id = request_data.get('user_id', '')
+    favs = FavRecipes.objects.filter(user_id = user_id).values_list('recipes_id', flat=True)
     items = Meals.objects.filter(id=recipe_id).first()
-    serializer = RecipeDetailsSerializer(items)
+    serializer = RecipeDetailsSerializer(items, context={"fav_meals":favs})
     return Response({"data": serializer.data}, status=200)
 
 @api_view(['GET'])
@@ -201,7 +209,7 @@ def get_ingredients(request):
     ).annotate(
         product_name=F('user_inventory__product__name'),
         product_id=F('user_inventory__product_id')
-    ).values('product_name', 'product_id', 'quantity')
+    ).values('product_name', 'product_id', 'quantity', 'quantity_type')
 
     return Response({"data": entries}, status=200)
 

@@ -27,8 +27,6 @@ class Categories(models.TextChoices):
     PICKLED_ITEMS = 'PICKLED_ITEMS', 'Pickled Items'
     BAKING_INGREDIENTS = 'BAKING_INGREDIENTS', 'Baking Ingredients'
 
-
-
 class AllergyTags(models.TextChoices):
     APPLE = 'APPLE', 'Apple'
     BANANA = 'BANANA', 'Banana'

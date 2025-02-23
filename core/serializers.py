@@ -3,6 +3,8 @@ from user.models import UserProduct, Entry, Meals
 from product.enums import Categories
 from user.serializers import UserProductSerializer
 from django.utils.timezone import now
+from user.models import User
+
 
 
 class RecipesSerializer(serializers.ModelSerializer):
@@ -10,6 +12,17 @@ class RecipesSerializer(serializers.ModelSerializer):
     meal_type_choice = serializers.CharField(source='get_meal_type_display')
     category_name = serializers.CharField(source='category.name')
     is_fav = serializers.SerializerMethodField()
+    missing_items = serializers.SerializerMethodField()
+
+    def get_missing_items(self, obj):
+        user_id = self.context.get('user_id', '') 
+        if user_id:
+            ingredients = obj.ingredients or []
+            product_ids = set([item.get('id', '') for item in ingredients])
+            user_prod = UserProduct.objects.filter(product_id__in=product_ids, user_id=user_id).values_list('id', flat=True)
+            # print(product_ids - set(user_prod), product_ids, user_prod)
+            return len(product_ids - set(user_prod))
+        return 0
 
     def get_is_fav(self, obj):
         fav_meals = self.context.get('fav_meals', []) or []
@@ -21,13 +34,17 @@ class RecipesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Meals
-        fields = ['id', 'name', 'subtitle',  'recipe_time', 'is_fav', 'recipe_choice', 'meal_type_choice', 'category_name', 'category', 'image_url']
+        fields = ['id', 'name', 'subtitle',  'recipe_time', 'is_fav', 'recipe_choice', 'meal_type_choice', 'category_name', 'category', 'image_url', "missing_items"]
 
 class RecipeDetailsSerializer(serializers.ModelSerializer):
     recipe_choice = serializers.CharField(source='get_recipe_type_display')
     meal_type_choice = serializers.CharField(source='get_meal_type_display')
     category_name = serializers.CharField(source='category.name')
     is_fav = serializers.SerializerMethodField()
+    missing_items = serializers.SerializerMethodField()
+
+    def get_missing_items(self, obj):
+        return 0
 
     def get_is_fav(self, obj):
         fav_meals = self.context.get('fav_meals', []) or []
@@ -37,13 +54,18 @@ class RecipeDetailsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Meals
-        fields = ['id', 'name', 'subtitle',  'recipe_time', 'is_fav', 'recipe_choice', 'meal_type_choice', 'category_name', 'category', 'details', 'ingredients', 'steps', 'image_url']
+        fields = ['id', 'name', 'subtitle',  'recipe_time', 'is_fav', 'recipe_choice', 'meal_type_choice', 'category_name', 'category', 'details', 'ingredients', 'steps', 'image_url', 'missing_items']
 
 
 class HomeDataSerializer(serializers.Serializer):
     inventory = serializers.SerializerMethodField()
     alerts = serializers.SerializerMethodField()
+    username = serializers.SerializerMethodField()
 
+    def get_username(self, obj):
+        username = self.initial_data.get('username', {})
+        name = username.get('name', '')
+        return name
 
     def get_inventory(self, obj):
         inventory = []
@@ -51,7 +73,7 @@ class HomeDataSerializer(serializers.Serializer):
         for category in Categories:
             category_data = {
                 "id": category.name,
-                "name": category.value,
+                "name": category.label,
                 "products": []
             }
             products = UserProduct.objects.filter(user_id=user_id, product__category=category)

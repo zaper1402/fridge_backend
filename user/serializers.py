@@ -35,6 +35,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     total_qt= serializers.SerializerMethodField()
+    subname = serializers.SerializerMethodField()
+
+    def get_subname(self, obj):
+        subname = self.context.get('subname', '')
+        return subname
 
     def get_total_qt(self, obj):
         user_id = self.context.get('user_id', '')
@@ -46,7 +51,7 @@ class ProductSerializer(serializers.ModelSerializer):
         
     class Meta:
         model = Product
-        fields = ['total_qt', 'name', 'standard_expiry_days', 'category', 'allergy_tags']
+        fields = ['total_qt', 'name', 'standard_expiry_days', 'category', 'allergy_tags', 'subname']
 
 class EntrySerializer(serializers.ModelSerializer):
     class Meta:
@@ -54,25 +59,26 @@ class EntrySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class UserProductSerializer(serializers.ModelSerializer):
-    product = ProductSerializer()
+    product = serializers.SerializerMethodField()
     entries = EntrySerializer(source='entry_set', many=True)
     name = serializers.CharField(source='subname')
+
+    def get_product(self, obj):
+        return ProductSerializer(obj.product, context={**self.context, 'subname': obj.subname}).data
 
     class Meta:
         model = UserProduct
         fields = ['product', 'entries', 'name']
 
 
-class   AddProductFormSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=100)
-    category = serializers.ChoiceField(choices=Categories.choices, required=True)
+class AddProductFormSerializer(serializers.Serializer):
+    id = serializers.CharField(max_length=100)
     subname = serializers.CharField(max_length=100, required=False)
     expiry = serializers.DateField(required=False)
     allergy_tags = serializers.MultipleChoiceField(choices=AllergyTags.choices, required=False)
     quantity = serializers.FloatField(required=True)
-    
-    # quantity_type = serializers.ChoiceField(choices=QuantityType.choices, required=True)
     user_id = serializers.IntegerField(required=True)
+    quantity_type = serializers.ChoiceField(choices=QuantityType.choices, required=False)
     
     def set_expiry_date(self, standard_expiry_days, expiry_date):
         if expiry_date is None and standard_expiry_days is None:
@@ -86,34 +92,29 @@ class   AddProductFormSerializer(serializers.Serializer):
                 return expiry_date
 
     def create(self, validated_data):
-        product_filter = {
-            'name__iexact': validated_data['name'],
-            'category': validated_data['category']
-        }
-        if 'brand' in validated_data and validated_data['brand']:
-            product_filter['brand'] = validated_data['brand']
+        # product_filter = {
+        #     'name__iexact': validated_data['name'],
+        # }
+        # if 'brand' in validated_data and validated_data['brand']:
+        #     product_filter['brand'] = validated_data['brand']
 
-        product, created = Product.objects.get_or_create(
-            defaults={
-                'name': validated_data['name'],
-                'category': validated_data['category'],
-                'standard_expiry_days': None,
-                'allergy_tags': list(validated_data.get('allergy_tags', '')) if validated_data.get('allergy_tags', '') else [],
-            },
-            **product_filter
-        )
+        # product, created = Product.objects.get_or_create(
+        #     defaults={
+        #         'name': validated_data['name'],
+        #     },
+        #     **product_filter
+        # )
+        product = Product.objects.filter(id = validated_data.get('id', '')).first()
         user_product, _ = UserProduct.objects.get_or_create(
             user_id=validated_data['user_id'],
-            subname=validated_data.get('subname', ''),
-            product_id=product.id,
-            defaults={
-                'product': product,
-            }
+            subname=validated_data.get('subname', '') if validated_data.get('subname', '') else product.name,
+            product_id=validated_data.get('id', '')
         )
         entry = Entry.objects.create(
             user_inventory=user_product,
             quantity=validated_data['quantity'],
-            expiry_date=self.set_expiry_date(product.standard_expiry_days, validated_data.get('expiry', None))
+            expiry_date=self.set_expiry_date(product.standard_expiry_days, validated_data.get('expiry', None)),
+            quantity_type=validated_data.get('quantity_type', '')
         )
         # return user product with all entries 
         user_product_data = UserProductSerializer(user_product).data
