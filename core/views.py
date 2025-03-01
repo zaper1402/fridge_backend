@@ -77,7 +77,7 @@ def expiry(request):
             expiry_date__gte=expiry_start,
             expiry_date__lte=expiry_end,
             user_inventory__user_id=user_id
-        ).values('expiry_date', 'user_inventory__product__name')
+        ).values('expiry_date', 'user_inventory__subname')
         return Response(list(entries), status=200) 
     except Exception as err:
         return Response(

@@ -1,7 +1,8 @@
 from rest_framework import serializers
+from collections import defaultdict
 from user.models import UserProduct, Entry, Meals
 from product.enums import Categories
-from user.serializers import UserProductSerializer
+from user.serializers import UserProductSerializer, EntrySerializer
 from django.utils.timezone import now
 from user.models import User
 
@@ -70,21 +71,51 @@ class HomeDataSerializer(serializers.Serializer):
         return name
 
     def get_inventory(self, obj):
-        inventory = []
         user_id = self.initial_data.get('user_id')
-        for category in Categories:
-            category_data = {
-                "id": category.name,
-                "name": category.label,
-                "products": []
-            }
-            products = UserProduct.objects.filter(user_id=user_id, product__category=category)
-            serialized_products = UserProductSerializer(products, many=True, context={"user_id": user_id}).data
-            prod_list = [product for product in serialized_products if len(product.get('entries'))>0]
-            # if serialized_products.get('entries', []):
-            category_data["products"].extend(prod_list)
-            if category_data.get('products'):
-                inventory.append(category_data)
+        inventory = []
+
+        user_products = UserProduct.objects.filter(user_id=user_id).select_related('product')
+
+        # Group products by category and then by product name
+        category_wise_products = defaultdict(lambda: defaultdict(lambda: {"total_qt": 0, "entries": []}))
+
+        for user_product in user_products:
+            category = user_product.product.category
+            product_name = user_product.product.name
+            category_label = Categories(category).label
+
+            # Aggregate total quantity
+            total_quantity = sum(
+                Entry.objects.filter(user_inventory=user_product).values_list("quantity", flat=True)
+            )
+            category_wise_products[category][product_name]["total_qt"] += total_quantity
+
+            # Serialize entries and append
+            serialized_entries = EntrySerializer(user_product.entry_set.all(), many=True).data
+            category_wise_products[category][product_name]["entries"].extend(serialized_entries)
+
+            # Track unique subnames
+            # if user_product.subname:
+            #     category_wise_products[category][product_name]["subnames"].add(user_product.subname)
+
+            # Store additional product attributes
+            category_wise_products[category][product_name].update({
+                "name": product_name,
+                "standard_expiry_days": user_product.product.standard_expiry_days,
+                "category": category_label,
+                "allergy_tags": user_product.product.allergy_tags,
+            })
+
+        # Convert the grouped data into the required format
+        for category, products in category_wise_products.items():
+            product_list = []
+            category_label = Categories(category).label
+            for name, details in products.items():            
+                entries = details.pop("entries", [])
+                product_list.append({"product": details, "entries": entries})
+
+            inventory.append({"id": category, "name": category_label, "products": product_list})
+
         return inventory
     
     def get_alerts(self, obj):

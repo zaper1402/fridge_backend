@@ -54,9 +54,14 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = ['total_qt', 'name', 'standard_expiry_days', 'category', 'allergy_tags', 'subname']
 
 class EntrySerializer(serializers.ModelSerializer):
+    subname = serializers.SerializerMethodField()
+
+    def get_subname(self, obj):
+        return obj.user_inventory.subname or obj.user_inventory.product.name
+
     class Meta:
         model = Entry
-        fields = '__all__'
+        fields = ['subname', 'quantity', 'expiry_date', 'creation_date', 'quantity_type']
 
 class UserProductSerializer(serializers.ModelSerializer):
     product = serializers.SerializerMethodField()
