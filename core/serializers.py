@@ -15,14 +15,16 @@ class RecipesSerializer(serializers.ModelSerializer):
     missing_items = serializers.SerializerMethodField()
 
     def get_missing_items(self, obj):
-        user_id = self.context.get('user_id', '') 
-        if user_id:
-            ingredients = obj.ingredients or []
-            product_ids = set([item.get('id', '') for item in ingredients])
-            user_prod = UserProduct.objects.filter(product_id__in=product_ids, user_id=user_id).values_list('id', flat=True)
-            # print(product_ids - set(user_prod), product_ids, user_prod)
-            return len(product_ids - set(user_prod))
-        return 0
+        user_id = self.context.get('user_id')  
+        if not user_id:
+            return 0
+
+        ingredients = obj.ingredients or []
+        product_ids = {item.get('id') for item in ingredients if item.get('id')}
+        user_prod = set(Entry.objects.filter(user_inventory__product_id__in=product_ids, user_inventory__user_id=user_id, quantity__gt=0, expiry_date__gt=now())
+                        .values_list('user_inventory__product_id', flat=True))
+
+        return len(product_ids - user_prod)
 
     def get_is_fav(self, obj):
         fav_meals = self.context.get('fav_meals', []) or []
@@ -78,7 +80,9 @@ class HomeDataSerializer(serializers.Serializer):
             }
             products = UserProduct.objects.filter(user_id=user_id, product__category=category)
             serialized_products = UserProductSerializer(products, many=True, context={"user_id": user_id}).data
-            category_data["products"].extend(serialized_products)
+            prod_list = [product for product in serialized_products if len(product.get('entries'))>0]
+            # if serialized_products.get('entries', []):
+            category_data["products"].extend(prod_list)
             if category_data.get('products'):
                 inventory.append(category_data)
         return inventory

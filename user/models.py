@@ -63,25 +63,26 @@ class Cuisine(models.Model):
 class Meals(models.Model):
 
     STATUS_CHOICE = [
-        (1, 'Dinner'),
-        (2, 'Breakfast'),
-        (3, 'Lunch')
+        (1, 'Breakfast'),
+        (2, 'Lunch'),
+        (3, 'Dinner'),
     ]
     TYPE_CHOICE = [
         (1, 'Very Easy'),
         (2, 'Easy'),
         (3, 'Medium')
     ]
-    name = models.CharField(max_length=100, null=True, blank=True)
-    subtitle = models.CharField(max_length=500, null=True, blank=True)
+    name = models.CharField(max_length=1000, null=True, blank=True)
+    subtitle = models.CharField(max_length=1000, null=True, blank=True)
     category = models.ForeignKey(Cuisine, on_delete=models.CASCADE)
-    image_url = models.CharField(max_length=500, null=True, blank=True)
+    image_url = models.CharField(max_length=1000, null=True, blank=True)
     recipe_type = models.SlugField(choices=TYPE_CHOICE, max_length=2, null=True, blank=True)
     recipe_time = models.CharField(max_length=100, null=True, blank=True)
-    meal_type = models.SlugField(choices=STATUS_CHOICE, max_length=2, null=True, blank=True)
+    servings = models.IntegerField(null=True, blank=True)
     details = models.TextField(null=True, blank=True)
     ingredients = models.JSONField(null = True , blank = True , default = None)
     steps = models.JSONField(null = True , blank = True , default = None)
+    meal_type = models.SlugField(choices=STATUS_CHOICE, max_length=2, null=True, blank=True)
 
 class FavRecipes(models.Model):
     recipes = models.ForeignKey(Meals, on_delete=models.CASCADE)

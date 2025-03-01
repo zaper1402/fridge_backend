@@ -14,7 +14,7 @@ def convert_expiry_to_upper_bound(expiry_range):
         return expiry_range
     # Check if the value contains '-'
     if isinstance(expiry_range, str) and '-' in expiry_range:
-        try:
+        try:        
             # Attempt to split the string by hyphen
             upper_bound = int(str(expiry_range).split('-')[1])
             return upper_bound

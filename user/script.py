@@ -10,22 +10,24 @@
 import pandas as pd
 import os
 from user.models import Meals, Cuisine
+from product.models import Product
 import re
 import random
 from django.conf import settings
-
-
-def populate_recipes_db():    
-    excel_path = '/home/auriga/Downloads/recipes.xlsx'
-
-# from user.models import Meals, Cuisine
-# Cuisine.objects.create(name='Chinese', image_url='https://d2vsf1hynzxim7.cloudfront.net/production/media/12807/responsive-images/foodnetwork-image-e87cbe2d-6bf2-4a33-b526-0d7a4f2f7afb___default_196_147.jpeg')
-# Cuisine.objects.create(name='Italian', image_url='https://d2vsf1hynzxim7.cloudfront.net/production/media/12807/responsive-images/foodnetwork-image-e87cbe2d-6bf2-4a33-b526-0d7a4f2f7afb___default_196_147.jpeg')
-# Cuisine.objects.create(name='Korean', image_url='https://d2vsf1hynzxim7.cloudfront.net/production/media/12807/responsive-images/foodnetwork-image-e87cbe2d-6bf2-4a33-b526-0d7a4f2f7afb___default_196_147.jpeg')
+from django.db.models import Q
 
 
 
-    df = pd.read_excel(excel_path)
+def populate_recipes_db(sheet_count):    
+    excel_path = '/home/auriga/Downloads/recipes_with_ingredients1.xlsx'
+    cuisine = Cuisine.objects.all().values('id', 'name')
+    cuisine_dict = {item['name']:item['id'] for item in cuisine}
+    create_list = []
+    error_list = []
+    df = pd.read_excel(excel_path, sheet_name=sheet_count)
+    total_rows = df.shape[0]
+    # print(df)
+
     for index, row in df.iterrows():
         try:
             diff = 1
@@ -35,27 +37,40 @@ def populate_recipes_db():
                 diff = 2
             if row['Difficulty'] == 'MEDIUM':
                 diff = 3
-            recipe, created = Meals.objects.update_or_create(
-                # Unique fields to identify existing recipe
-                name=row['Name'],
-                defaults={
+            if row['Cuisine'] and row['Cuisine'] != 'All':
+                category_id = parse_category(row['Cuisine'], cuisine_dict)
+
+                obj = {
                     'image_url': row['Image URL'],
                     'name':row['Name'],
+                    'category_id':category_id or None,
                     'recipe_time': convert_time_to_minutes(row['Time to Cook']),
                     'recipe_type': diff,
-                    'category_id':random.choice([1, 2, 3]),
-                    # 'servings': convert_to_int(row['Servings']),
+                    'steps': parse_instructions(row['Instructions']),
                     'details': row['Description'],
-                    # 'cuisine_tags': list(map(lambda x: x.strip(), row['Cuisine Tags'].split(','))),
-                    # 'ingredients': parse_ingredients(row['Ingredients']),
-                    'steps': parse_instructions(row['Instructions'])
+                    'servings': convert_to_int(row['Servings']),
+                    'ingredients': parse_ingredients(row['Ingredient only']),
+                    'meal_type':sheet_count+1
                 }
-            )
-            # print(f"{'Created' if {created} else 'Updated'} recipe: {recipe.name}")
+                print(obj)
+                create_list.append(Meals(**obj))
+
+            total_rows = total_rows-1
+            print(total_rows)
         except Exception as e:
             print(f"Error creating recipe: {row['Name']} => {e}")
+            error_list.append({"row":row['Name'], "error":e})
             continue
-        recipe.save()
+        # recipe.save()
+    print(create_list)
+    if create_list:
+        Meals.objects.bulk_create(create_list, ignore_conflicts=True)
+    print(error_list)
+
+
+def parse_category(data, cuisine_dict):
+    item = data.split(",")
+    return cuisine_dict.get(item[0], '')    
 
 def convert_time_to_minutes(time):
     try:
@@ -79,15 +94,16 @@ def convert_to_int(value):
     except:
         return None
     
+def parse_ingredients(ingredients):
+    processed_ingredients = ingredients.replace('[', '').replace(']', '')
+    parent_list = {}
+    for item in processed_ingredients.split(','):
+        words = item.strip()
+        item1 = Product.objects.filter(name=words).first()
+        if item1:
+            parent_list[item1.id] = {'id':item1.id, "name":item}
+    return list(parent_list.values())
 
-def parse_ingredients(ingredients : str):
-    #Sample data
-    #[Kosher salt], [2 cups old-fashioned oats], 1 cup 2-percent Greek yogurt
-    #Expected output  : ['Kosher salt', '2 cups old-fashioned oats', '1 cup 2-percent Greek yogurt']
-    ingredients = ingredients.replace('[', '').replace(']', '')
-    #return strip all (, & spaces) from each item in the array
-    #filter all item less than length 3
-    return [item.strip() for item in ingredients.split(',')]
 
 def parse_instructions(instructions : str):
     #Sample data

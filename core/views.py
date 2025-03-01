@@ -33,6 +33,7 @@ def update_quantity(request):
             return Response(
                 {"error": f"entry id is required"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         entries_to_update = []
+        entries_to_delete=[]
     
         for entry_data in entries_data:
             entry_id = entry_data.get('entry_id')
@@ -44,12 +45,19 @@ def update_quantity(request):
 
             entry = Entry.objects.filter(id=entry_id).first()
             if entry:
-                entry.quantity = quantity
-                entry.quantity_type=quantity_type
-                entries_to_update.append(entry)
-        print(entries_to_update)
+                if quantity > 0:
+                    entry.quantity = quantity
+                    entry.quantity_type=quantity_type
+                    entries_to_update.append(entry)
+                else:
+                    entries_to_delete.append(entry_id)
+
         if entries_to_update:
             Entry.objects.bulk_update(entries_to_update, ['quantity', 'quantity_type'])  # Efficient batch update
+
+        if entries_to_delete:
+            Entry.objects.filter(id__in=entries_to_delete).delete()
+
 
         return Response(status=200) 
     except Exception as err:
@@ -178,7 +186,8 @@ def get_recipes(request):
     favs = FavRecipes.objects.filter(user_id = user_id).values_list('recipes_id', flat=True)
     items = Meals.objects.filter(meal_type=meal_type, category_id=cuisine)
     serializer = RecipesSerializer(items, many=True, context={"fav_meals":favs, "user_id":user_id})
-    return Response({"data": serializer.data}, status=200)
+    records = sorted(serializer.data, key=lambda x: x['missing_items'])[:10]
+    return Response({"data": records}, status=200)
 
 
     
@@ -199,13 +208,13 @@ def get_ingredients(request):
     user_id = request_data.get('user_id', '')
     items = Meals.objects.filter(id=recipe_id).first()
     ingredients = items.ingredients or []
-    product_ids = [item.get('id', '') for item in ingredients]
-    user_prod = UserProduct.objects.filter(product_id__in=product_ids, user_id=user_id).values_list('id', flat=True)
+    product_ids = {item.get('id') for item in ingredients if item.get('id')}
+    user_prod = set(UserProduct.objects.filter(product_id__in=product_ids, user_id=user_id).values_list('product_id', flat=True))
     from django.db.models import F  
     from django.utils.timezone import now
 
     entries = Entry.objects.filter(
-        user_inventory__in=user_prod, quantity__gt=0, expiry_date__gt=now()
+        user_inventory__product_id__in=user_prod, quantity__gt=0, expiry_date__gt=now()
     ).annotate(
         product_name=F('user_inventory__product__name'),
         product_id=F('user_inventory__product_id')
