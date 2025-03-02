@@ -210,13 +210,13 @@ def get_ingredients(request):
     ingredients = items.ingredients or []
     product_ids = {item.get('id') for item in ingredients if item.get('id')}
     user_prod = set(UserProduct.objects.filter(product_id__in=product_ids, user_id=user_id).values_list('product_id', flat=True))
-    from django.db.models import F  
+    from django.db.models import F, Value
     from django.utils.timezone import now
-
+    from django.db.models.functions import Coalesce, NullIf
     entries = Entry.objects.filter(
         user_inventory__product_id__in=user_prod, quantity__gt=0, expiry_date__gt=now()
     ).annotate(
-        product_name=F('user_inventory__product__name'),
+        product_name=Coalesce(NullIf(F('user_inventory__subname'), Value('')), F('user_inventory__product__name')),
         product_id=F('user_inventory__product_id')
     ).values('product_name', 'product_id', 'quantity', 'quantity_type')
 

@@ -49,7 +49,7 @@ def populate_recipes_db(sheet_count):
                     'steps': parse_instructions(row['Instructions']),
                     'details': row['Description'],
                     'servings': convert_to_int(row['Servings']),
-                    'ingredients': parse_ingredients(row['Ingredient only']),
+                    'ingredients': parse_ingredients(row['Ingredient only'], row['Ingredients']),
                     'meal_type':sheet_count+1
                 }
                 print(obj)
@@ -94,25 +94,35 @@ def convert_to_int(value):
     except:
         return None
     
-def parse_ingredients(ingredients):
+def parse_ingredients(ingredients, raw_ingredients):
     processed_ingredients = ingredients.replace('[', '').replace(']', '')
-    parent_list = {}
+    raw_items = re.findall(r'\[(.*?)\]', raw_ingredients)
+    raw_ingredients_final = [item.strip() for item in raw_items]
+    parent_dict = {}
     for item in processed_ingredients.split(','):
         words = item.strip()
         item1 = Product.objects.filter(name=words).first()
         if item1:
-            parent_list[item1.id] = {'id':item1.id, "name":item}
-    return list(parent_list.values())
+            raw_ingredients_final, item_name = remove_ingredient(raw_ingredients_final, words)
+            if item_name:
+                parent_dict[item1.id] = {'id':item1.id, "name":item_name}
+            else:
+                parent_dict[item1.id] = {'id':item1.id, "name":words}
 
+
+    parent_list = list(parent_dict.values())
+    for item in raw_ingredients_final:
+        parent_list.append({'id':'', "name":item})
+    return parent_list
+
+def remove_ingredient(ingredients, search_term):
+    for index, item in enumerate(ingredients):
+        if search_term.lower() in item.lower():
+            return ingredients[:index] + ingredients[index+1:], item  # Remove the found item
+        
+    return ingredients
 
 def parse_instructions(instructions : str):
-    #Sample data
-    # [1. Bring 3 1/2 cups water and 1/2 teaspoon salt to a boil in a medium saucepan. Reduce the heat to medium-low and stir in the oats. Cook, stirring frequently, until the oats are creamy and tender, 5 to 6 minutes. Remove the saucepan from the heat, cover and rest until the oatmeal thickens slightly, for about 2 minutes.]
-    # Expected Output : 
-    # [ '1. Bring 3 1/2 cups water and 1/2 teaspoon salt to a boil in a medium saucepan', 'Reduce the heat to medium-low and stir in the oats', 'Cook, stirring frequently, until the oats are creamy and tender, 5 to 6 minutes', 'Remove the saucepan from the heat, cover and rest until the oatmeal thickens slightly, for about 2 minutes'] 
-    #Remove all number followed by a dot
     instructions = re.sub(r'\d+\.', '', instructions)
-    #Remove all square brackets
     instructions = instructions.replace('[', '').replace(']', '')
-    #return JSONArray split by dot and strip whitespace
     return [step.strip(',').strip() for step in instructions.split('.') if step and len(step.strip()) > 3]
