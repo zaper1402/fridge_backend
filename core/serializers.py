@@ -24,8 +24,7 @@ class RecipesSerializer(serializers.ModelSerializer):
         product_ids = {item.get('id') for item in ingredients if item.get('id')}
         user_prod = set(Entry.objects.filter(user_inventory__product_id__in=product_ids, user_inventory__user_id=user_id, quantity__gt=0, expiry_date__gt=now())
                         .values_list('user_inventory__product_id', flat=True))
-
-        return len(product_ids - user_prod)
+        return len(ingredients) - len(user_prod)
 
     def get_is_fav(self, obj):
         fav_meals = self.context.get('fav_meals', []) or []
