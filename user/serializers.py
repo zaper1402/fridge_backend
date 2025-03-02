@@ -61,7 +61,7 @@ class EntrySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Entry
-        fields = ['subname', 'quantity', 'expiry_date', 'creation_date', 'quantity_type']
+        fields = ['subname', 'quantity', 'expiry_date', 'creation_date', 'quantity_type', 'id']
 
 class UserProductSerializer(serializers.ModelSerializer):
     product = serializers.SerializerMethodField()
@@ -97,18 +97,6 @@ class AddProductFormSerializer(serializers.Serializer):
                 return expiry_date
 
     def create(self, validated_data):
-        # product_filter = {
-        #     'name__iexact': validated_data['name'],
-        # }
-        # if 'brand' in validated_data and validated_data['brand']:
-        #     product_filter['brand'] = validated_data['brand']
-
-        # product, created = Product.objects.get_or_create(
-        #     defaults={
-        #         'name': validated_data['name'],
-        #     },
-        #     **product_filter
-        # )
         product = Product.objects.filter(id = validated_data.get('id', '')).first()
         user_product, _ = UserProduct.objects.get_or_create(
             user_id=validated_data['user_id'],

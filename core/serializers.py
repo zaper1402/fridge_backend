@@ -112,9 +112,10 @@ class HomeDataSerializer(serializers.Serializer):
             category_label = Categories(category).label
             for name, details in products.items():            
                 entries = details.pop("entries", [])
-                product_list.append({"product": details, "entries": entries})
-
-            inventory.append({"id": category, "name": category_label, "products": product_list})
+                if entries:
+                    product_list.append({"product": details, "entries": entries})
+            if product_list:
+                inventory.append({"id": category, "name": category_label, "products": product_list})
 
         return inventory
     
