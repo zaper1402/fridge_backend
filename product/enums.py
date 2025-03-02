@@ -21,12 +21,14 @@ class Categories(models.TextChoices):
     SNACKS = 'SNACKS', 'Snacks'
     SPICES = 'SPICES', 'Spices'
     HERBS = 'HERBS', 'Herbs'
-    READY_TO_EAT_MEALS = 'READY_TO_EAT_MEALS', 'Ready-to-eat Meals'
+    READY_TO_EAT_MEALS = 'READY-TO-EAT_MEALS', 'Ready-to-eat Meals'
     SEAFOOD = 'SEAFOOD', 'Seafood'
     DESSERTS = 'DESSERTS', 'Desserts'
     PICKLED_ITEMS = 'PICKLED_ITEMS', 'Pickled Items'
-    BAKING_INGREDIENTS = 'BAKING_INGREDIENTS', 'Baking Ingredients'
+    BAKING_INGREDIENTS = 'BAKING_INGREDIENTS', 'Baking Ingredients',
+    MEAT = 'MEAT', 'Meat'
 
+    
 class AllergyTags(models.TextChoices):
     APPLE = 'APPLE', 'Apple'
     BANANA = 'BANANA', 'Banana'
